@@ -18,8 +18,18 @@ struct IOSLiveTVView: View {
     @State private var dismissedIssues = ""
 
     private static let favoritesFilter = "Favorites"
+    private static let sourceFilterPrefix = "Source:"
 
     private var layout: LiveLayout { LiveLayout(rawValue: layoutRaw) ?? .browse }
+
+    private var channelSources: [LiveTVDataStore.LiveTVSourceInfo] {
+        let channelSourceIDs = Set(store.channels.map(\.sourceId))
+        return store.sources.filter { channelSourceIDs.contains($0.id) }
+    }
+
+    private func sourceFilter(_ source: LiveTVDataStore.LiveTVSourceInfo) -> String {
+        Self.sourceFilterPrefix + source.id
+    }
 
     var body: some View {
         content
@@ -128,6 +138,11 @@ struct IOSLiveTVView: View {
 
     /// The filtered lineup. A filter whose channels vanished falls back to all.
     private var guideChannels: [UnifiedChannel] {
+        if guideFilter.hasPrefix(Self.sourceFilterPrefix) {
+            let sourceID = String(guideFilter.dropFirst(Self.sourceFilterPrefix.count))
+            let matching = store.channels.filter { $0.sourceId == sourceID }
+            return matching.isEmpty ? store.channels : matching
+        }
         if guideFilter == Self.favoritesFilter {
             let favorites = store.favorites(in: store.channels)
             return favorites.isEmpty ? store.channels : favorites
@@ -162,12 +177,20 @@ struct IOSLiveTVView: View {
 
     private var filterMenu: some View {
         let hasFavorites = !store.favorites(in: store.channels).isEmpty
-        let active = guideChannels.count != store.channels.count || guideFilter == Self.favoritesFilter
+        let active = !guideFilter.isEmpty
         return Menu {
             Picker("Channels", selection: $guideFilter) {
                 Text("All Channels").tag("")
                 if hasFavorites {
                     Label("Favorites", systemImage: "star").tag(Self.favoritesFilter)
+                }
+                if !channelSources.isEmpty {
+                    Section("Sources") {
+                        ForEach(channelSources) { source in
+                            Label(source.displayName, systemImage: source.sourceType.iconName)
+                                .tag(sourceFilter(source))
+                        }
+                    }
                 }
                 ForEach(groups, id: \.self) { Text($0).tag($0) }
             }
