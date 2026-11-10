@@ -31,6 +31,12 @@ struct IOSLiveTVView: View {
         Self.sourceFilterPrefix + source.id
     }
 
+    private func sourceMenuName(_ source: LiveTVDataStore.LiveTVSourceInfo) -> String {
+        let suffix = " Live TV"
+        guard source.displayName.hasSuffix(suffix) else { return source.displayName }
+        return String(source.displayName.dropLast(suffix.count))
+    }
+
     var body: some View {
         content
             .navigationTitle("Live TV")
@@ -187,7 +193,7 @@ struct IOSLiveTVView: View {
                 if !channelSources.isEmpty {
                     Section("Sources") {
                         ForEach(channelSources) { source in
-                            Label(source.displayName, systemImage: source.sourceType.iconName)
+                            Label(sourceMenuName(source), systemImage: source.sourceType.iconName)
                                 .tag(sourceFilter(source))
                         }
                     }
