@@ -216,8 +216,12 @@ final class HeroButtonRowView: UIView {
 
     private var pagesOnLeft: Bool { playButton.isFocused && canRetreat && !arrivedThisGesture }
 
-    /// Next is the last button, so the engine has no Right move from it to make.
-    private var pagesOnRight: Bool { nextButton.isFocused && !nextButton.isHidden && !arrivedThisGesture }
+    /// A rightward gesture inside the hero is always a forward page request.
+    /// Claim it from Play as well as Next so the focus engine cannot reinterpret
+    /// the sixth-to-first wrap as a finite-list move back through the carousel.
+    private var pagesOnRight: Bool {
+        playButton.isFocused || nextButton.isFocused
+    }
 
     // A Left or Right the engine declined (nothing to move to) reaches here; focus stays put.
     override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {

@@ -308,7 +308,7 @@ final class HeroBackdropView: UIView {
     /// Where the backdrop's bottom meets the floor line. Apple ends the catch-up
     /// at the offset that centres the first row (`d1`, 0x726a8c); y 325 is that
     /// point on Home, measured from the TV app.
-    static let meetY: CGFloat = 325
+    nonisolated static let meetY: CGFloat = 325
 
     nonisolated static func scrollLift(_ offset: CGFloat, shelfTop: CGFloat, height: CGFloat) -> CGFloat {
         let s = max(0, offset)

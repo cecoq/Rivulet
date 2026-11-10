@@ -444,6 +444,7 @@
 				en,
 				de,
 				el,
+				fr,
 				Base,
 			);
 			mainGroup = A72E03D12EDA297D003A73DA;
@@ -585,7 +586,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.3.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet.TopShelfExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet.dev.TopShelfExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
 				SKIP_INSTALL = YES;
@@ -616,7 +617,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.3.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet.TopShelfExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet.dev.TopShelfExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
 				SKIP_INSTALL = YES;
@@ -670,7 +671,7 @@
 					"-liconv",
 					"-lz",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -729,7 +730,7 @@
 					"-liconv",
 					"-lz",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -926,7 +927,7 @@
 				CODE_SIGN_ENTITLEMENTS = RivuletiOS/RivuletiOS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 77;
-				DEVELOPMENT_TEAM = ZHB786H6YN;
+				DEVELOPMENT_TEAM = A9RCEB5QS2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = RivuletiOS/Info.plist;
@@ -943,7 +944,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.3.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cecoq.rivulet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -966,7 +967,7 @@
 				CODE_SIGN_ENTITLEMENTS = RivuletiOS/RivuletiOS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 77;
-				DEVELOPMENT_TEAM = ZHB786H6YN;
+				DEVELOPMENT_TEAM = A9RCEB5QS2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = RivuletiOS/Info.plist;
@@ -983,7 +984,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.3.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cecoq.rivulet;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1016,7 +1017,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.3.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet.AssetPackExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet.dev.AssetPackExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
 				SKIP_INSTALL = YES;
@@ -1045,7 +1046,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.3.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet.AssetPackExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet.dev.AssetPackExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
 				SKIP_INSTALL = YES;
@@ -1081,7 +1082,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.3.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet.dev.mac;
 				PRODUCT_MODULE_NAME = Rivulet_Mac;
 				PRODUCT_NAME = Rivulet;
 				SDKROOT = macosx;
@@ -1117,7 +1118,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.3.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gstudios.rivulet.dev.mac;
 				PRODUCT_MODULE_NAME = Rivulet_Mac;
 				PRODUCT_NAME = Rivulet;
 				SDKROOT = macosx;
