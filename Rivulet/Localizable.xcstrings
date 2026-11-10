@@ -269,9 +269,7 @@
         }
       }
     },
-    "%lld More Episodes" : {
-
-    },
+    "%lld More Episodes" : {},
     "%lld Servers" : {
       "localizations" : {
         "de" : {
@@ -1108,28 +1106,6 @@
         }
       }
     },
-    "%lld photos" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "new",
-                  "value" : "%lld photo"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "new",
-                  "value" : "%lld photos"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "%lld playlists" : {
       "localizations" : {
         "de" : {
@@ -1524,9 +1500,7 @@
         }
       }
     },
-    "1 More Episode" : {
-
-    },
+    "1 More Episode" : {},
     "10 seconds" : {
       "localizations" : {
         "de" : {
@@ -1986,6 +1960,7 @@
       }
     },
     "After this many episodes play in a row, the next one waits for you instead of starting on its own." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2257,9 +2232,7 @@
         }
       }
     },
-    "At the Credits" : {
-
-    },
+    "At the Credits" : {},
     "Audio" : {
       "localizations" : {
         "de" : {
@@ -3002,9 +2975,7 @@
         }
       }
     },
-    "Channel" : {
-
-    },
+    "Channel" : {},
     "Channel %@" : {
       "localizations" : {
         "de" : {
@@ -4339,9 +4310,7 @@
         }
       }
     },
-    "Critic Reviews" : {
-
-    },
+    "Critic Reviews" : {},
     "Crude & Sexual Language" : {
       "localizations" : {
         "de" : {
@@ -4448,9 +4417,7 @@
         }
       }
     },
-    "Decade" : {
-
-    },
+    "Decade" : {},
     "Decoded" : {
       "localizations" : {
         "de" : {
@@ -4628,6 +4595,7 @@
       }
     },
     "Diagnostics are not available in this build." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5369,16 +5337,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Περισσότερη βελτίωση"
-          }
-        }
-      }
-    },
-    "Enhancement Layer" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erweiterungsebene"
           }
         }
       }
@@ -6482,9 +6440,7 @@
         }
       }
     },
-    "Fresh" : {
-
-    },
+    "Fresh" : {},
     "Frightening & Intense" : {
       "localizations" : {
         "de" : {
@@ -6513,16 +6469,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Από την αρχή"
-          }
-        }
-      }
-    },
-    "Full (FEL)" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vollständig (FEL)"
           }
         }
       }
@@ -6591,9 +6537,7 @@
         }
       }
     },
-    "Genre" : {
-
-    },
+    "Genre" : {},
     "Genres" : {
       "localizations" : {
         "de" : {
@@ -7149,9 +7093,7 @@
         }
       }
     },
-    "How many more episodes play on their own after the one you picked. After that, the next one waits for you." : {
-
-    },
+    "How many more episodes play on their own after the one you picked. After that, the next one waits for you." : {},
     "How this source appears in Live TV. Leave it empty to use “%@”." : {
       "localizations" : {
         "de" : {
@@ -8171,16 +8113,6 @@
         }
       }
     },
-    "Minimal (MEL)" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Minimal (MEL)"
-          }
-        }
-      }
-    },
     "Mixed" : {},
     "Mode" : {
       "localizations" : {
@@ -9094,9 +9026,7 @@
         }
       }
     },
-    "Nothing" : {
-
-    },
+    "Nothing" : {},
     "Nothing in your Watchlist yet." : {
       "localizations" : {
         "de" : {
@@ -9691,9 +9621,6 @@
           }
         }
       }
-    },
-    "Photos in View" : {
-
     },
     "Pinned Collections" : {
       "localizations" : {
@@ -11935,12 +11862,8 @@
         }
       }
     },
-    "Rotten" : {
-
-    },
-    "Route" : {
-
-    },
+    "Rotten" : {},
+    "Route" : {},
     "Rows" : {
       "localizations" : {
         "de" : {
@@ -12163,9 +12086,7 @@
         }
       }
     },
-    "SOURCE" : {
-
-    },
+    "SOURCE" : {},
     "SP" : {
       "localizations" : {
         "de" : {
@@ -13370,9 +13291,7 @@
         }
       }
     },
-    "Skip Button" : {
-
-    },
+    "Skip Button" : {},
     "Skip Buttons" : {
       "localizations" : {
         "de" : {
@@ -13709,9 +13628,7 @@
         }
       }
     },
-    "Speed" : {
-
-    },
+    "Speed" : {},
     "Sports" : {
       "localizations" : {
         "de" : {
@@ -14728,9 +14645,7 @@
         }
       }
     },
-    "The report is saved and will be sent with your next attempt." : {
-
-    },
+    "The report is saved and will be sent with your next attempt." : {},
     "The server couldn't convert this item" : {
       "localizations" : {
         "de" : {
@@ -16113,9 +16028,6 @@
         }
       }
     },
-    "Unknown Place" : {
-
-    },
     "Unknown error" : {
       "localizations" : {
         "de" : {
@@ -16196,12 +16108,8 @@
         }
       }
     },
-    "Unwatched" : {
-
-    },
-    "Unwatched Only" : {
-
-    },
+    "Unwatched" : {},
+    "Unwatched Only" : {},
     "Up Next" : {
       "localizations" : {
         "de" : {
@@ -16741,6 +16649,7 @@
       }
     },
     "What happens when the credits start. Manual shows Skip Credits, Automatic skips straight to the post-play screen, and Off never shows the button." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -16837,6 +16746,7 @@
       }
     },
     "When off, closing credits play uninterrupted and the player returns to Home at the end of the episode." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -18064,7 +17974,123 @@
           }
         }
       }
-    }
+    },
+    "%lld photos" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "new",
+                  "value" : "%lld photo"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "new",
+                  "value" : "%lld photos"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Enhancement Layer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erweiterungsebene"
+          }
+        }
+      }
+    },
+    "Full (FEL)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vollständig (FEL)"
+          }
+        }
+      }
+    },
+    "Minimal (MEL)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minimal (MEL)"
+          }
+        }
+      }
+    },
+    "Photos in View" : {},
+    "Unknown Place" : {},
+    "%@ + %lld more" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ + %2$lld more"
+          }
+        }
+      }
+    },
+    "%@ to %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ to %2$@"
+          }
+        }
+      }
+    },
+    "%lld hr %lld min left" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld hr %2$lld min left"
+          }
+        }
+      }
+    },
+    "%lld min left" : {},
+    "%lld percent watched" : {},
+    "Commercial" : {},
+    "No Plex server is connected." : {},
+    "Record…" : {},
+    "S%lld, E%lld · %@:" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "S%1$lld, E%2$lld · %3$@:"
+          }
+        }
+      }
+    },
+    "S%lld, E%lld:" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "S%1$lld, E%2$lld:"
+          }
+        }
+      }
+    },
+    "Segment" : {},
+    "Subtitle %@" : {},
+    "This item has no playable file." : {},
+    "This server can't stream this title to this device." : {},
+    "Untitled" : {},
+    "Watch" : {},
+    "What shows when the credits start. Up Next opens the next episode card with its countdown. Skip Button shows only Skip Credits and opens Up Next at the end. Nothing shows no button or card until the end. Countdown decides whether the next episode autoplays." : {}
   },
   "version" : "1.0"
 }

@@ -96,7 +96,7 @@ enum DiagnosticsReport {
         uname(&system)
         let model = withUnsafeBytes(of: system.machine) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }
         let process = ProcessInfo.processInfo
-        let screen = window?.screen ?? UIScreen.main
+        guard let screen = window?.screen ?? UIScreen.screens.first else { return [:] }
         let audio = AVAudioSession.sharedInstance()
         let freeDisk = (try? URL(fileURLWithPath: NSHomeDirectory())
             .resourceValues(forKeys: [.volumeAvailableCapacityKey]).volumeAvailableCapacity) ?? -1
@@ -111,7 +111,6 @@ enum DiagnosticsReport {
             "network": NetworkPathMonitor.shared.interfaceKind,
             "screen": "\(Int(screen.nativeBounds.width))x\(Int(screen.nativeBounds.height)) @\(screen.maximumFramesPerSecond)Hz",
             "hdr_eligible": AVPlayer.eligibleForHDRPlayback,
-            "hdr_modes": AVPlayer.availableHDRModes.rawValue,
             "match_content": window?.avDisplayManager.isDisplayCriteriaMatchingEnabled ?? false,
             "audio_outputs": audio.currentRoute.outputs.map(\.portType.rawValue),
             "audio_max_channels": audio.maximumOutputNumberOfChannels,

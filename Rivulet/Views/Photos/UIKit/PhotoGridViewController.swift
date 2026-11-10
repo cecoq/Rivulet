@@ -130,6 +130,13 @@ final class PhotoGridViewController: UIViewController, SidebarTabReselecting {
             section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: tile.leading, bottom: 0,
                                                             trailing: tile.leading)
             section.contentInsetsReference = .none
+            if index == Section.folders.rawValue {
+                // The page title, scrolling away with the content.
+                section.boundarySupplementaryItems = [NSCollectionLayoutBoundarySupplementaryItem(
+                    layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1),
+                                                       heightDimension: .absolute(PhotoGridHeaderView.height)),
+                    elementKind: Self.headerKind, alignment: .top)]
+            }
             return section
         }
     }

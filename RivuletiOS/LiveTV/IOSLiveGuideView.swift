@@ -529,10 +529,12 @@ private final class IOSLiveGuideLayout: UICollectionViewLayout {
 private final class IOSLiveGuideProgramCell: UICollectionViewCell {
     static let reuseID = "guide-program"
 
+    private let artworkView = UIImageView()
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
     private let recordingDot = UIView()
-    private var textLeading: NSLayoutConstraint!
+    private var contentLeading: NSLayoutConstraint!
+    private var artworkTask: Task<Void, Never>?
     private var program: UnifiedProgram?
     private var isRecording = false
     private var isPast = false
@@ -549,22 +551,36 @@ private final class IOSLiveGuideProgramCell: UICollectionViewCell {
             label.adjustsFontForContentSizeCategory = true
             label.lineBreakMode = .byTruncatingTail
         }
-        let stack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
-        stack.axis = .vertical
-        stack.spacing = 1
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(stack)
+
+        artworkView.contentMode = .scaleAspectFill
+        artworkView.clipsToBounds = true
+        artworkView.layer.cornerRadius = 4
+        artworkView.translatesAutoresizingMaskIntoConstraints = false
+
+        let textStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
+        textStack.axis = .vertical
+        textStack.spacing = 1
+        textStack.translatesAutoresizingMaskIntoConstraints = false
+
+        let contentStack = UIStackView(arrangedSubviews: [artworkView, textStack])
+        contentStack.axis = .horizontal
+        contentStack.alignment = .center
+        contentStack.spacing = 6
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(contentStack)
 
         recordingDot.backgroundColor = .systemRed
         recordingDot.layer.cornerRadius = 3.5
         recordingDot.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(recordingDot)
 
-        textLeading = stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8)
+        contentLeading = contentStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8)
         NSLayoutConstraint.activate([
-            textLeading,
-            stack.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -12),
-            stack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            contentLeading,
+            contentStack.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -12),
+            contentStack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            artworkView.widthAnchor.constraint(equalToConstant: 28),
+            artworkView.heightAnchor.constraint(equalToConstant: 42),
             recordingDot.widthAnchor.constraint(equalToConstant: 7),
             recordingDot.heightAnchor.constraint(equalToConstant: 7),
             recordingDot.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 6),
@@ -581,11 +597,25 @@ private final class IOSLiveGuideProgramCell: UICollectionViewCell {
     func configure(program: UnifiedProgram?, isRecording: Bool) {
         self.program = program
         self.isRecording = isRecording
+        artworkTask?.cancel()
+        showArtwork(nil)
         titleLabel.text = program?.displayTitle ?? String(localized: "No guide data")
         let subtitle = [program?.guideDetail, program?.guideTag].compactMap { $0 }.joined(separator: " · ")
         subtitleLabel.text = subtitle.isEmpty ? nil : subtitle
         subtitleLabel.isHidden = subtitle.isEmpty
         recordingDot.isHidden = !isRecording
+
+        if let artworkURL = program?.posterURL ?? program?.iconURL {
+            let cached = IOSArtworkCache.shared.cachedImage(for: artworkURL)
+            showArtwork(cached)
+            if cached == nil {
+                artworkTask = Task { [weak self] in
+                    let image = await IOSArtworkCache.shared.image(for: artworkURL)
+                    guard !Task.isCancelled else { return }
+                    self?.showArtwork(image)
+                }
+            }
+        }
 
         let airing = program?.isCurrentlyAiring ?? true
         accessibilityLabel = titleLabel.text
@@ -599,7 +629,7 @@ private final class IOSLiveGuideProgramCell: UICollectionViewCell {
     override func apply(_ layoutAttributes: UICollectionViewLayoutAttributes) {
         super.apply(layoutAttributes)
         guard let attributes = layoutAttributes as? IOSLiveGuideAttributes else { return }
-        textLeading.constant = 8 + min(attributes.hiddenLeading, max(0, bounds.width - 40))
+        contentLeading.constant = 8 + min(attributes.hiddenLeading, max(0, bounds.width - 40))
         if attributes.isPast != isPast {
             isPast = attributes.isPast
             updateColors()
@@ -613,6 +643,19 @@ private final class IOSLiveGuideProgramCell: UICollectionViewCell {
             ? .systemGray4
             : (isPast ? UIColor.secondarySystemBackground.withAlphaComponent(0.45) : .secondarySystemBackground)
         titleLabel.textColor = isPast ? .secondaryLabel : .label
+    }
+
+    private func showArtwork(_ image: UIImage?) {
+        artworkView.image = image
+        artworkView.isHidden = image == nil
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        artworkTask?.cancel()
+        artworkTask = nil
+        program = nil
+        showArtwork(nil)
     }
 }
 

@@ -172,7 +172,7 @@ extension PlexProvider: PhotoProvider {
                 }
             }
             // ponytail: one request of 1000 albums; page it if a level ever has more.
-            func albums() async throws -> [PlexMetadata] {
+            @Sendable func albums() async throws -> [PlexMetadata] {
                 guard page.offset == 0, query.listsAlbums else { return [] }
                 return try await networkManager.getLibraryItemsWithTotal(
                     serverURL: serverURL, authToken: authToken, sectionId: library.id,

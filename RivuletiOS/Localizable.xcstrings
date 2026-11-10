@@ -1,25 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Map" : {},
-    "On This Day" : {},
-    "Photos from %@" : {},
-    "Slideshow" : {},
-    "Photos" : {},
-    "Unfavorite" : {},
-    "Videos" : {},
-    "Date Taken" : {},
-    "A to Z" : {},
-    "Z to A" : {},
-    "Newest First" : {},
-    "Oldest First" : {},
-    "Dissolve" : {},
-    "Pan and Zoom" : {},
-    "Slideshow Interval" : {},
-    "Transition" : {},
-    "Play Clips in Slideshow" : {},
-    "Direction" : {},
-    "Sort and Show" : {},
     "" : {},
     " " : {},
     "%@ Live TV" : {
@@ -75,6 +56,7 @@
       }
     },
     "%@ isn’t reachable right now." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -457,6 +439,7 @@
       }
     },
     "%lld items" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "variations" : {
@@ -476,24 +459,6 @@
             }
           }
         },
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld item"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld items"
-                }
-              }
-            }
-          }
-        },
         "el" : {
           "variations" : {
             "plural" : {
@@ -507,6 +472,24 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld στοιχεία"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld item"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld items"
                 }
               }
             }
@@ -1042,9 +1025,7 @@
         }
       }
     },
-    "At the Credits" : {
-
-    },
+    "At the Credits" : {},
     "Audio" : {
       "localizations" : {
         "de" : {
@@ -2378,6 +2359,7 @@
       }
     },
     "Couldn’t Connect" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2505,9 +2487,7 @@
         }
       }
     },
-    "Critic Reviews" : {
-
-    },
+    "Critic Reviews" : {},
     "DNS lookup failed for EPG server" : {
       "localizations" : {
         "de" : {
@@ -2540,9 +2520,7 @@
         }
       }
     },
-    "Decade" : {
-
-    },
+    "Decade" : {},
     "Default" : {
       "localizations" : {
         "de" : {
@@ -2945,22 +2923,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Λήψη %1$lld από %2$lld"
-          }
-        }
-      }
-    },
-    "Downloading Subtitles…" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Untertitel werden geladen …"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Λήψη υποτίτλων…"
           }
         }
       }
@@ -3840,9 +3802,7 @@
         }
       }
     },
-    "Fresh" : {
-
-    },
+    "Fresh" : {},
     "Genre" : {
       "localizations" : {
         "de" : {
@@ -3957,9 +3917,7 @@
     },
     "Hero Playlists" : {},
     "Hidden from Home" : {},
-    "Higher" : {
-
-    },
+    "Higher" : {},
     "HTTP error %lld" : {
       "localizations" : {
         "de" : {
@@ -4500,9 +4458,7 @@
         }
       }
     },
-    "Lower" : {
-
-    },
+    "Lower" : {},
     "Lowest Quality" : {
       "localizations" : {
         "de" : {
@@ -5109,22 +5065,6 @@
         }
       }
     },
-    "No Subtitles Found" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keine Untertitel gefunden"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Δεν βρέθηκαν υπότιτλοι"
-          }
-        }
-      }
-    },
     "None" : {
       "localizations" : {
         "de" : {
@@ -5167,9 +5107,7 @@
         }
       }
     },
-    "Nothing" : {
-
-    },
+    "Nothing" : {},
     "Nothing On Right Now" : {
       "localizations" : {
         "de" : {
@@ -6306,9 +6244,7 @@
     "Reset Home Rows?" : {},
     "Reset the Hero?" : {},
     "Rows" : {},
-    "Reset subtitle height" : {
-
-    },
+    "Reset subtitle height" : {},
     "RT Audience" : {
       "localizations" : {
         "de" : {
@@ -7011,9 +6947,7 @@
         }
       }
     },
-    "Rotten" : {
-
-    },
+    "Rotten" : {},
     "Runtime" : {
       "localizations" : {
         "de" : {
@@ -7170,76 +7104,12 @@
         }
       }
     },
-    "Search Failed" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suche fehlgeschlagen"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Αποτυχία αναζήτησης"
-          }
-        }
-      }
-    },
-    "Search for Subtitles" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nach Untertiteln suchen"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Αναζήτηση υποτίτλων"
-          }
-        }
-      }
-    },
-    "Search Results" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suchergebnisse"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Αποτελέσματα αναζήτησης"
-          }
-        }
-      }
-    },
     "Search Your Libraries" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Deine Mediatheken durchsuchen"
-          }
-        }
-      }
-    },
-    "Searching…" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suchen …"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Αναζήτηση…"
           }
         }
       }
@@ -7742,9 +7612,7 @@
         }
       }
     },
-    "Skip Button" : {
-
-    },
+    "Skip Button" : {},
     "Skip Buttons" : {
       "localizations" : {
         "de" : {
@@ -8107,25 +7975,7 @@
         }
       }
     },
-    "Subtitle" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Untertitel"
-          }
-        },
-        "el" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Υπότιτλος"
-          }
-        }
-      }
-    },
-    "Subtitle Height" : {
-
-    },
+    "Subtitle Height" : {},
     "Subtitle Language" : {
       "localizations" : {
         "de" : {
@@ -8540,6 +8390,7 @@
       }
     },
     "The server" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -9549,9 +9400,7 @@
         }
       }
     },
-    "Up Next opens the next episode card when the credits start. Skip Button shows only Skip Credits, then Up Next opens at the end. Nothing waits for the end. Countdown decides autoplay." : {
-
-    },
+    "Up Next opens the next episode card when the credits start. Skip Button shows only Skip Credits, then Up Next opens at the end. Nothing waits for the end. Countdown decides autoplay." : {},
     "Upcoming" : {
       "localizations" : {
         "de" : {
@@ -10247,6 +10096,137 @@
         }
       }
     },
+    "Map" : {},
+    "On This Day" : {},
+    "Photos from %@" : {},
+    "Slideshow" : {},
+    "Photos" : {},
+    "Unfavorite" : {},
+    "Videos" : {},
+    "Date Taken" : {},
+    "A to Z" : {},
+    "Z to A" : {},
+    "Newest First" : {},
+    "Oldest First" : {},
+    "Dissolve" : {},
+    "Pan and Zoom" : {},
+    "Slideshow Interval" : {},
+    "Transition" : {},
+    "Play Clips in Slideshow" : {},
+    "Direction" : {},
+    "Sort and Show" : {},
+    "Downloading Subtitles…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untertitel werden geladen …"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Λήψη υποτίτλων…"
+          }
+        }
+      }
+    },
+    "No Subtitles Found" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Untertitel gefunden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν βρέθηκαν υπότιτλοι"
+          }
+        }
+      }
+    },
+    "Search Failed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suche fehlgeschlagen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αποτυχία αναζήτησης"
+          }
+        }
+      }
+    },
+    "Search for Subtitles" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach Untertiteln suchen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αναζήτηση υποτίτλων"
+          }
+        }
+      }
+    },
+    "Search Results" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suchergebnisse"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αποτελέσματα αναζήτησης"
+          }
+        }
+      }
+    },
+    "Searching…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suchen …"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αναζήτηση…"
+          }
+        }
+      }
+    },
+    "Subtitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untertitel"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Υπότιτλος"
+          }
+        }
+      }
+    },
     "%@ + %lld more" : {
       "localizations" : {
         "en" : {
@@ -10313,7 +10293,11 @@
     "Stop Slideshow" : {},
     "Subtitle %@" : {},
     "Try again in a moment." : {},
-    "Turn on another server first, or sign out of Plex." : {}
+    "Turn on another server first, or sign out of Plex." : {},
+    "Color Theme" : {},
+    "Dark" : {},
+    "Light" : {},
+    "System" : {}
   },
   "version" : "1.0"
 }
