@@ -118,6 +118,7 @@ actor PlexProgressReporter {
                 method: "GET",
                 headers: ["X-Plex-Token": server.token, "Accept": "application/json"]
             )
+            await PlexNetworkManager.shared.forgetRecentReads()
             return PlexNetworkManager.timelineTermination(in: data)
         } catch {
             playerDebugLog("📊 PlexProgress: Failed to report progress: \(error)")
@@ -144,9 +145,15 @@ actor PlexProgressReporter {
 
     /// Marks an item as fully watched (scrobble)
     /// - Parameter ratingKey: The Plex rating key for the media item
-    func markAsWatched(ratingKey: String, server explicit: PlexServerAddress? = nil) async {
+    /// - Parameter playsBefore: the item's view count when playback began. Given, the scrobble is
+    ///   skipped when the server already counted this play (see `serverCountedPlay`).
+    func markAsWatched(ratingKey: String, playsBefore: Int? = nil, server explicit: PlexServerAddress? = nil) async {
         guard !ratingKey.isEmpty else { return }
         guard let server = await server(explicit) else { return }
+        if let playsBefore, await PlexNetworkManager.shared.serverCountedPlay(
+            serverURL: server.address, authToken: server.token, ratingKey: ratingKey, playsBefore: playsBefore) {
+            return
+        }
 
         let urlString = "\(server.address)/:/scrobble?identifier=com.plexapp.plugins.library&key=\(ratingKey)"
 
@@ -158,6 +165,7 @@ actor PlexProgressReporter {
                 method: "GET",
                 headers: ["X-Plex-Token": server.token]
             )
+            await PlexNetworkManager.shared.forgetRecentReads()
         } catch {
             playerDebugLog("📊 PlexProgress: Failed to mark as watched: \(error)")
         }
@@ -179,6 +187,7 @@ actor PlexProgressReporter {
                 method: "GET",
                 headers: ["X-Plex-Token": server.token]
             )
+            await PlexNetworkManager.shared.forgetRecentReads()
         } catch {
             playerDebugLog("📊 PlexProgress: Failed to mark as unwatched: \(error)")
         }
