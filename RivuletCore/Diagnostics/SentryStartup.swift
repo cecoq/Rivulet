@@ -29,9 +29,9 @@ public enum SentryStartup {
     /// actor it trips the Main Thread Checker on every launch.
     @MainActor
     /// `configure` sets options that only exist on the caller's platform.
-    public static func start(platform: Platform, configure: @escaping (Options) -> Void = { _ in }) {
+    public static func start(platform: Platform, dsn: String, configure: @escaping (Options) -> Void = { _ in }) {
         SentrySDK.start { options in
-            options.dsn = Secrets.sentryDSN
+            options.dsn = dsn
             options.debug = false
             // Initial scope, so startup events carry the tag. It tags without
             // splitting grouping: a shared-code crash stays one issue.

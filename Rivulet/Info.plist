@@ -4,7 +4,6 @@
 <dict>
 	<key>AVInitialRouteSharingPolicy</key>
 	<string>LongFormAudio</string>
-	<!-- Apple-hosted asset packs (the speech model), fetched by AssetPackExtension. -->
 	<key>BAAppGroupID</key>
 	<string>group.com.bain.Rivulet</string>
 	<key>BAHasManagedAssetPacks</key>
@@ -22,19 +21,11 @@
 			</array>
 		</dict>
 	</array>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<!-- Users connect to their own media servers (a Plex server, or an IPTV/M3U
-	     provider they subscribe to). These are commonly reached over HTTP on a local
-	     network or a self-hosted box without a TLS certificate, so arbitrary loads are
-	     required to support user-supplied endpoints. -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>Rivulet connects to media servers on your local network, such as your Plex server, to stream your library.</string>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>com.rivulet.viewMedia</string>

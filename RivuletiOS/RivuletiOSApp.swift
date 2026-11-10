@@ -66,7 +66,7 @@ struct RivuletiOSApp: App {
         Task.detached(priority: .utility) {
             guard !Secrets.sentryDSN.isEmpty else { return }
             try? await Task.sleep(for: .seconds(3))
-            await SentryStartup.start(platform: isMac ? .macOS : .iOS) { options in
+            await SentryStartup.start(platform: isMac ? .macOS : .iOS, dsn: Secrets.sentryDSN) { options in
                 // Partial stalls were a third of all hang events and never led to a fix.
                 options.enableReportNonFullyBlockingAppHangs = false
             }
