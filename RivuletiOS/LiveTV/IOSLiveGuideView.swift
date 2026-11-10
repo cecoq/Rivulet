@@ -83,6 +83,8 @@ final class IOSLiveGuideCoordinator: NSObject, UICollectionViewDataSource, UICol
     private var signature = 0
     private var jumpToken = 0
     private var hasPositioned = false
+    private var hasRevealedGuide = false
+    private var artworkWarmupTask: Task<Void, Never>?
     fileprivate private(set) var windowStart = Date()
 
     override init() {
@@ -112,20 +114,30 @@ final class IOSLiveGuideCoordinator: NSObject, UICollectionViewDataSource, UICol
     func update(_ guide: IOSLiveGuideView) {
         self.guide = guide
         var hasher = Hasher()
-        hasher.combine(guide.loadedThrough)
-        hasher.combine(guide.recordingIds)
         for channel in guide.channels {
             hasher.combine(channel.id)
             hasher.combine(channel.logoURL)
             let programs = guide.epg[channel.id]
-            hasher.combine(programs?.count)
-            hasher.combine(programs?.first?.id)
-            hasher.combine(programs?.last?.id)
+            hasher.combine(programs?.count ?? 0)
+            for program in programs ?? [] {
+                hasher.combine(program.id)
+                hasher.combine(program.startTime)
+                hasher.combine(program.endTime)
+            }
         }
         let newSignature = hasher.finalize()
         if newSignature != signature {
             signature = newSignature
             rebuild()
+        } else if guide.recordingIds != recordingIds {
+            // Recording state is a decoration, not guide structure. Updating
+            // it in place keeps every artwork-backed cell alive.
+            recordingIds = guide.recordingIds
+            for indexPath in collectionView.indexPathsForVisibleItems {
+                guard let cell = collectionView.cellForItem(at: indexPath) as? IOSLiveGuideProgramCell,
+                      let program = span(at: indexPath)?.program else { continue }
+                cell.setRecording(recordingIds.contains(program.id))
+            }
         }
         if guide.jumpToken != jumpToken {
             jumpToken = guide.jumpToken
@@ -162,7 +174,73 @@ final class IOSLiveGuideCoordinator: NSObject, UICollectionViewDataSource, UICol
         layout.timelineStart = start
         layout.now = Date()
         layout.invalidateLayout()
-        collectionView.reloadData()
+
+        if hasRevealedGuide {
+            collectionView.reloadData()
+        } else {
+            // Keep the first frame hidden while the artwork for the visible
+            // time window is decoded. Showing cells first and then replacing
+            // their placeholders one by one is the startup flicker reported
+            // in the guide.
+            collectionView.isHidden = true
+            artworkWarmupTask?.cancel()
+            let warmupSignature = signature
+            let urls = artworkURLsForInitialWindow()
+            artworkWarmupTask = Task { [weak self, weak collectionView] in
+                await Self.warmArtwork(urls)
+                guard !Task.isCancelled else { return }
+                guard let self, self.signature == warmupSignature,
+                      let collectionView else { return }
+                collectionView.reloadData()
+                collectionView.layoutIfNeeded()
+                self.hasRevealedGuide = true
+                collectionView.isHidden = false
+                self.artworkWarmupTask = nil
+            }
+        }
+    }
+
+    /// Artwork that can actually be seen when the guide first opens: two hours
+    /// of history plus six hours ahead. The guide initially jumps to the
+    /// current time, so warming the entire loaded guide would delay the first
+    /// frame without improving what is immediately visible.
+    private func artworkURLsForInitialWindow() -> Set<URL> {
+        let now = Date()
+        let start = now.addingTimeInterval(-Self.historyMinutes * 60)
+        let end = now.addingTimeInterval(6 * 3600)
+        var urls = Set<URL>()
+        for row in rows {
+            for span in row {
+                guard let program = span.program,
+                      program.endTime > start,
+                      program.startTime < end,
+                      let url = program.posterURL ?? program.iconURL else { continue }
+                urls.insert(url)
+            }
+        }
+        for channel in channels {
+            if let url = channel.logoURL { urls.insert(url) }
+        }
+        return urls
+    }
+
+    nonisolated private static func warmArtwork(_ urls: Set<URL>) async {
+        let urls = Array(urls)
+        var offset = 0
+        while offset < urls.count && !Task.isCancelled {
+            // Keep enough requests in flight to fill the first guide frame
+            // quickly, while still bounding work for servers with many rows.
+            let end = min(offset + 24, urls.count)
+            await withTaskGroup(of: Void.self) { group in
+                for url in urls[offset..<end] {
+                    group.addTask {
+                        _ = await IOSArtworkCache.shared.image(for: url)
+                    }
+                }
+                await group.waitForAll()
+            }
+            offset = end
+        }
     }
 
     // MARK: Time
@@ -174,7 +252,10 @@ final class IOSLiveGuideCoordinator: NSObject, UICollectionViewDataSource, UICol
     func tick() {
         layout.now = Date()
         layout.invalidateLayout()
-        collectionView.reconfigureItems(at: collectionView.indexPathsForVisibleItems)
+        // `reconfigureItems` calls cell.configure(), which used to clear and
+        // reload every thumbnail on every 30-second clock tick. The layout
+        // invalidation above updates the now-line/past styling without
+        // recycling or touching the artwork views.
     }
 
     func jumpToNow(animated: Bool) {
@@ -595,25 +676,37 @@ private final class IOSLiveGuideProgramCell: UICollectionViewCell {
     required init?(coder: NSCoder) { fatalError() }
 
     func configure(program: UnifiedProgram?, isRecording: Bool) {
+        let nextArtworkURL = program?.posterURL ?? program?.iconURL
+        let sameArtwork = self.program?.id == program?.id && artworkURL == nextArtworkURL
         self.program = program
         self.isRecording = isRecording
-        artworkTask?.cancel()
-        showArtwork(nil)
         titleLabel.text = program?.displayTitle ?? String(localized: "No guide data")
         let subtitle = [program?.guideDetail, program?.guideTag].compactMap { $0 }.joined(separator: " · ")
         subtitleLabel.text = subtitle.isEmpty ? nil : subtitle
         subtitleLabel.isHidden = subtitle.isEmpty
         recordingDot.isHidden = !isRecording
 
-        if let artworkURL = program?.posterURL ?? program?.iconURL {
-            let cached = IOSArtworkCache.shared.cachedImage(for: artworkURL)
-            showArtwork(cached)
-            if cached == nil {
-                artworkTask = Task { [weak self] in
-                    let image = await IOSArtworkCache.shared.image(for: artworkURL)
-                    guard !Task.isCancelled else { return }
-                    self?.showArtwork(image)
+        if !sameArtwork {
+            artworkTask?.cancel()
+            artworkTask = nil
+            artworkURL = nextArtworkURL
+
+            if let artworkURL = nextArtworkURL {
+                let cached = IOSArtworkCache.shared.cachedImage(for: artworkURL)
+                showArtwork(cached)
+                if cached == nil {
+                    let programID = program?.id
+                    artworkTask = Task { [weak self] in
+                        let image = await IOSArtworkCache.shared.image(for: artworkURL)
+                        guard let self, !Task.isCancelled,
+                              self.artworkURL == artworkURL,
+                              self.program?.id == programID else { return }
+                        self.showArtwork(image)
+                        self.artworkTask = nil
+                    }
                 }
+            } else {
+                showArtwork(nil)
             }
         }
 
@@ -624,6 +717,11 @@ private final class IOSLiveGuideProgramCell: UICollectionViewCell {
         if isRecording { value.append(String(localized: "Recording")) }
         accessibilityValue = value.joined(separator: ", ")
         accessibilityHint = airing ? String(localized: "Plays the channel") : String(localized: "Shows details")
+    }
+
+    func setRecording(_ recording: Bool) {
+        isRecording = recording
+        recordingDot.isHidden = !recording
     }
 
     override func apply(_ layoutAttributes: UICollectionViewLayoutAttributes) {
@@ -655,8 +753,11 @@ private final class IOSLiveGuideProgramCell: UICollectionViewCell {
         artworkTask?.cancel()
         artworkTask = nil
         program = nil
+        artworkURL = nil
         showArtwork(nil)
     }
+
+    private var artworkURL: URL?
 }
 
 private final class IOSLiveGuideChannelView: UICollectionReusableView {

@@ -43,7 +43,8 @@ actor IOSArtworkCache {
             if image == nil {
                 image = await SVGRasterizer.decode(data, maxPixelSize: 512).map { UIImage(cgImage: $0) }
             }
-            return image?.preparingForDisplay() ?? image
+            guard let image else { return nil }
+            return Self.normalizedForDisplay(image)
         }
         downloads[url] = task
         let image = await task.value
@@ -55,5 +56,31 @@ actor IOSArtworkCache {
             images.setObject(image, forKey: url as NSURL, cost: pixels * 4)
         }
         return image
+    }
+
+    /// Decode into a conventional bitmap before UIKit sees the image. The
+    /// guide creates many thumbnails at once; leaving ImageIO's original
+    /// color space/decompression deferred causes UIKit's render server to
+    /// report -17102 and briefly drop the artwork surface.
+    nonisolated private static func normalizedForDisplay(_ image: UIImage) -> UIImage? {
+        guard let source = image.cgImage else { return image }
+        let width = source.width
+        let height = source.height
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue
+        guard let context = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: width * 4,
+            space: colorSpace,
+            bitmapInfo: bitmapInfo
+        ) else { return nil }
+
+        context.interpolationQuality = .high
+        context.draw(source, in: CGRect(x: 0, y: 0, width: width, height: height))
+        guard let rendered = context.makeImage() else { return nil }
+        return UIImage(cgImage: rendered, scale: image.scale, orientation: image.imageOrientation)
     }
 }

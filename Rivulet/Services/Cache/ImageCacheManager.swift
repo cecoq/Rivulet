@@ -166,6 +166,11 @@ actor ImageCacheManager: NSObject {
 
         // 1. Memory cache (already decoded at this quality)
         if !forceRefresh, let cached = memoryCache.object(forKey: memKey) {
+            // Images enter this cache only after they have been decoded and
+            // prepared. Preparing an already prepared UIImage on every cache
+            // hit causes UIKit to repeatedly re-run decompression; on large
+            // EPG grids that produces the recurring -17102 errors and visible
+            // image flashes. Keep cache hits immutable and cheap.
             updateAccessTime(for: diskKey)
             scheduleStaleRefresh(url: url, key: diskKey)
             return cached
@@ -188,13 +193,14 @@ actor ImageCacheManager: NSObject {
 
         // 3. Download original bytes (coalesced), then decode to the requested size
         guard let data = await fetchOriginalData(url: url, key: diskKey) else { return nil }
-        guard let decoded = await decodeDownsampled(data: data, maxPixelSize: quality.maxPixelSize) else {
+        guard let decoded = await decodeDownsampled(data: data, maxPixelSize: quality.maxPixelSize),
+              let displayImage = await prepareForDisplay(decoded) else {
             // These bytes won't decode on a later try, so don't fetch them again for every cell.
             markMissing(url)
             return nil
         }
-        memoryCache.setObject(decoded, forKey: memKey, cost: Self.byteCost(decoded))
-        return decoded
+        memoryCache.setObject(displayImage, forKey: memKey, cost: Self.byteCost(displayImage))
+        return displayImage
     }
 
     /// Get an image at full resolution for hero/backdrop surfaces.
@@ -565,6 +571,38 @@ actor ImageCacheManager: NSObject {
         return image
     }
 
+    /// Force CoreGraphics to prepare the bitmap before it reaches a view.
+    /// ImageIO can report a complete container even when decompression later
+    /// fails on the render thread, producing repeated image/placeholder flashes.
+    nonisolated private func prepareForDisplay(_ image: UIImage) async -> UIImage? {
+        return await Task.detached(priority: .userInitiated) {
+            guard let source = image.cgImage else { return image }
+
+            // Re-render into a conventional 8-bit sRGB bitmap. This forces
+            // decoding while the cache is loading and avoids handing UIKit a
+            // deferred wide-gamut/indexed/CMYK surface that can fail later in
+            // the render server with -17102.
+            let colorSpace = CGColorSpaceCreateDeviceRGB()
+            let width = source.width
+            let height = source.height
+            let bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue
+            guard let context = CGContext(
+                data: nil,
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bytesPerRow: width * 4,
+                space: colorSpace,
+                bitmapInfo: bitmapInfo
+            ) else { return nil }
+
+            context.interpolationQuality = .high
+            context.draw(source, in: CGRect(x: 0, y: 0, width: width, height: height))
+            guard let rendered = context.makeImage() else { return nil }
+            return UIImage(cgImage: rendered, scale: image.scale, orientation: image.imageOrientation)
+        }.value
+    }
+
     /// Complete bytes ImageIO can read, or an SVG, which it can't.
     nonisolated private func isUsableImage(_ data: Data) -> Bool {
         if let source = CGImageSourceCreateWithData(data as CFData, nil),
@@ -598,8 +636,9 @@ actor ImageCacheManager: NSObject {
         }
 
         // Decode directly at the target size without allocating a full-resolution buffer.
-        if let downsampled = await downsampledImage(from: data, maxPixelSize: maxPixelSize) {
-            return downsampled
+        if let downsampled = await downsampledImage(from: data, maxPixelSize: maxPixelSize),
+           let prepared = await prepareForDisplay(downsampled) {
+            return prepared
         }
 
         // Fallback to standard decoding if downsampling fails

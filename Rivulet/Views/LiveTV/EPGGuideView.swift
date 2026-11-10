@@ -148,7 +148,9 @@ struct EPGGuide: UIViewRepresentable {
                     withReuseIdentifier: CornerView.reuseID)
 
         context.coordinator.collectionView = cv
+        cv.isHidden = true
         context.coordinator.apply(self, to: layout)
+        context.coordinator.prefetchArtworkThenReload(hideUntilReady: true)
 
         // Play/Pause jumps back to the now-airing programme.
         let jump = UITapGestureRecognizer(target: context.coordinator,
@@ -191,8 +193,19 @@ struct EPGGuide: UIViewRepresentable {
         context.coordinator.updateRecordingMarks(recordingProgramIds)
         let timelineMoved = context.coordinator.lastTimelineStart.map { $0 != timelineStart } ?? false
         let dataChanged = context.coordinator.apply(self, to: layout)
-        if dataChanged {
-            cv.reloadData()
+        if dataChanged && !context.coordinator.hasDisplayedGrid {
+            if context.coordinator.canUpdateCellsInPlace(in: cv) {
+                context.coordinator.refreshVisibleCells(in: cv)
+            } else if context.coordinator.hasDisplayedGrid {
+                // EPG responses arrive in batches. While those batches are
+                // being merged, the row counts can change several times in a
+                // short period. Do not recycle the visible image-backed cells
+                // for every intermediate snapshot; wait for the data to go
+                // quiet and perform one structural update.
+                context.coordinator.scheduleStructuralReload()
+            } else {
+                context.coordinator.prefetchArtworkThenReload(hideUntilReady: true)
+            }
             if transparent, !context.coordinator.didRestScroll {
                 context.coordinator.didRestScroll = true
                 cv.contentOffset = CGPoint(x: -EPGTheme.channelColumnWidth, y: -layout.gridTopInset)
@@ -202,9 +215,6 @@ struct EPGGuide: UIViewRepresentable {
                 // where it was, which reads as a jump hours to the right.
                 context.coordinator.resetHorizontalScroll()
             }
-        } else {
-            // Likely just `now` advanced — move the now-line without a reload.
-            layout.invalidateLayout()
         }
         uiView.setClock(now)
         if let request = focusRequest, request != context.coordinator.handledFocusRequest {
@@ -221,6 +231,11 @@ struct EPGGuide: UIViewRepresentable {
         private(set) var sections: [UnifiedChannel] = []
         private(set) var programs: [[UnifiedProgram]] = []
         private var lastSignature: Int = 0
+        private var artworkPrefetchTask: Task<Void, Never>?
+        private var artworkPrefetchSignature: Int?
+        private var artworkSnapshot: [URL: UIImage] = [:]
+        private var structuralReloadWorkItem: DispatchWorkItem?
+        private(set) var hasDisplayedGrid = false
         private var currentSection = 0
         private var pendingFocus: IndexPath?
         var didRestScroll = false
@@ -282,31 +297,161 @@ struct EPGGuide: UIViewRepresentable {
                 chans.append(channel)
             }
 
-            // Signature to detect data changes. Includes logoURL so a late
-            // channel-logo patch triggers a reload, and per-channel programme
-            // counts so EPG arriving AFTER the channels (Rivulet loads them
-            // separately) reloads the grid and the rows populate.
+            // Signature to detect actual guide changes. Use stable identities
+            // rather than the moving clock/timeline values: timestamp updates
+            // must only move the now-line and must never recycle the cells or
+            // make their artwork disappear.
             var sig = Hasher()
             sig.combine(p.channels.count)
             for c in p.channels {
                 sig.combine(c.id)
                 sig.combine(c.logoURL)
-                sig.combine(p.programsByChannel[c.id]?.count ?? 0)
+                let channelPrograms = p.programsByChannel[c.id] ?? []
+                sig.combine(channelPrograms.count)
+                for program in channelPrograms {
+                    sig.combine(program.id)
+                    sig.combine(program.startTime)
+                    sig.combine(program.endTime)
+                }
             }
-            sig.combine(p.timelineStart)
+            sig.combine(p.totalMinutes)
             let signature = sig.finalize()
-            let changed = signature != lastSignature
+            let changed = signature != lastSignature || lastTimelineStart != p.timelineStart
             lastSignature = signature
+
+            // Once the atomic snapshot has been revealed, the UIKit grid is
+            // intentionally immutable for the lifetime of this screen. SwiftUI
+            // can still call updateUIView for focus, recording, backdrop, or
+            // clock state; none of those updates may recycle or reconfigure
+            // image-backed programme cells.
+            if hasDisplayedGrid {
+                layout.updateNow(p.now)
+                return false
+            }
 
             sections = chans
             programs = progs
             lastTimelineStart = p.timelineStart
-            layout.configure(rows: rows,
-                             channelCount: chans.count,
-                             totalMinutes: p.totalMinutes,
-                             timelineStart: p.timelineStart,
-                             now: p.now)
+            if changed {
+                layout.configure(rows: rows,
+                                 channelCount: chans.count,
+                                 totalMinutes: p.totalMinutes,
+                                 timelineStart: p.timelineStart,
+                                 now: p.now)
+            } else {
+                // Clock ticks must not invalidate the collection layout. Doing
+                // so causes UIKit to redraw/reapply image-backed cells even
+                // though their programme data has not changed.
+                layout.updateNow(p.now)
+            }
             return changed
+        }
+
+        /// Warm every programme image before rebuilding the grid. UICollectionView
+        /// can recycle all visible cells during a reload; waiting for the cache
+        /// first prevents a placeholder/image/placeholder flash on each refresh.
+        func prefetchArtworkThenReload(hideUntilReady: Bool) {
+            guard let cv = collectionView else { return }
+            guard !hasDisplayedGrid else { return }
+            if hideUntilReady { cv.isHidden = true }
+
+            let signature = lastSignature
+            if artworkPrefetchSignature == signature {
+                if hideUntilReady {
+                    cv.reloadData()
+                    cv.isHidden = false
+                    hasDisplayedGrid = true
+                }
+                return
+            }
+            artworkPrefetchSignature = signature
+            artworkPrefetchTask?.cancel()
+
+            // The guide is presented atomically. Warm every programme image in
+            // the loaded snapshot before revealing the collection view, rather
+            // than allowing cells to appear first with placeholders and then
+            // change as their artwork arrives.
+            let urls = Array(Set(programs.flatMap { row in
+                row.compactMap { program in
+                    ProgramCellView.artworkURL(for: program)
+                }
+            }))
+
+            guard !urls.isEmpty else {
+                cv.reloadData()
+                cv.isHidden = false
+                hasDisplayedGrid = true
+                return
+            }
+
+            artworkPrefetchTask = Task { [weak self, weak cv] in
+                // Keep the full-guide preload bounded. The guide can contain
+                // thousands of programmes, so creating one task per URL would
+                // overload the image loader and recreate the same problem.
+                var offset = 0
+                var loadedArtwork: [URL: UIImage] = [:]
+                while offset < urls.count && !Task.isCancelled {
+                    let end = min(offset + 8, urls.count)
+                    let batch = urls[offset..<end]
+                    await withTaskGroup(of: (URL, UIImage?).self) { group in
+                        for url in batch {
+                            group.addTask {
+                                (url, await ImageCacheManager.shared.image(for: url, quality: .thumb))
+                            }
+                        }
+                        for await (url, image) in group {
+                            if let image { loadedArtwork[url] = image }
+                        }
+                    }
+                    offset = end
+                }
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    guard let self, let cv,
+                          self.artworkPrefetchSignature == signature else { return }
+                    self.artworkSnapshot = loadedArtwork
+                    cv.reloadData()
+                    cv.isHidden = false
+                    self.hasDisplayedGrid = true
+                    self.artworkPrefetchTask = nil
+                }
+            }
+        }
+
+        /// Coalesce the burst of structural snapshots produced while the EPG
+        /// store is filling. A reload during every snapshot recycles the
+        /// visible cells and briefly replaces their cached artwork with the
+        /// placeholder, which is the flicker seen in the guide.
+        func scheduleStructuralReload() {
+            structuralReloadWorkItem?.cancel()
+            let work = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                self.prefetchArtworkThenReload(hideUntilReady: true)
+            }
+            structuralReloadWorkItem = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.75, execute: work)
+        }
+
+        /// Data providers can publish the same guide structure repeatedly while
+        /// merging source responses. Reconfiguring visible cells in place keeps
+        /// their image views alive; `reloadData()` is reserved for structural
+        /// changes where the number of cells actually changed.
+        func canUpdateCellsInPlace(in cv: UICollectionView) -> Bool {
+            guard cv.numberOfSections == programs.count else { return false }
+            return (0..<programs.count).allSatisfy {
+                cv.numberOfItems(inSection: $0) == programs[$0].count
+            }
+        }
+
+        func refreshVisibleCells(in cv: UICollectionView) {
+            for indexPath in cv.indexPathsForVisibleItems {
+                guard let program = programs[safe: indexPath.section]?[safe: indexPath.item],
+                      let cell = cv.cellForItem(at: indexPath) as? ProgramCellView
+                else { continue }
+                cell.configure(program,
+                               isRecording: recordingIds.contains(program.id),
+                               artwork: ProgramCellView.artworkURL(for: program).flatMap { artworkSnapshot[$0] })
+            }
         }
 
         func numberOfSections(in collectionView: UICollectionView) -> Int { programs.count }
@@ -319,7 +464,9 @@ struct EPGGuide: UIViewRepresentable {
             let cell = cv.dequeueReusableCell(withReuseIdentifier: ProgramCellView.reuseID, for: indexPath) as! ProgramCellView
             cell.transparent = parent.transparent
             if let program = programs[safe: indexPath.section]?[safe: indexPath.item] {
-                cell.configure(program, isRecording: recordingIds.contains(program.id))
+                cell.configure(program,
+                               isRecording: recordingIds.contains(program.id),
+                               artwork: ProgramCellView.artworkURL(for: program).flatMap { artworkSnapshot[$0] })
             }
             return cell
         }
@@ -1315,6 +1462,10 @@ final class EPGLayout: UICollectionViewLayout {
         invalidateLayout()
     }
 
+    func updateNow(_ now: Date) {
+        self.now = now
+    }
+
     private var contentWidth: CGFloat { CGFloat(totalMinutes) * ppm }
     private var contentHeight: CGFloat { CGFloat(channelCount) * rowH }
 
@@ -1400,6 +1551,8 @@ final class EPGLayout: UICollectionViewLayout {
 
 final class ProgramCellView: UICollectionViewCell, KeepsUpAtTop {
     static let reuseID = "ProgramCellView"
+    private static let artworkCache = NSCache<NSURL, UIImage>()
+    private let artworkImageView = UIImageView()
     private let titleLabel = UILabel()
     private let subtitleLabel = UILabel()
     /// "NEW" or "LIVE" after the second line (#429).
@@ -1408,7 +1561,11 @@ final class ProgramCellView: UICollectionViewCell, KeepsUpAtTop {
     private let stack = UIStackView()
     private let card = UIView()
     private var stackLeading: NSLayoutConstraint!
-    private let baseLeading: CGFloat = 14
+    private var artworkWidth: NSLayoutConstraint!
+    private var titleInset: CGFloat = 0
+    private let textGap: CGFloat = 10
+    private let maxArtworkWidth: CGFloat = 120
+    private let textTrailingPadding: CGFloat = 10
 
     /// Hide text below this width so short programmes stay blank (no overlap).
     private let minTextWidth: CGFloat = 96
@@ -1428,6 +1585,13 @@ final class ProgramCellView: UICollectionViewCell, KeepsUpAtTop {
         elapsedLayer.backgroundColor = UIColor(white: 1, alpha: 0.07).cgColor
         elapsedLayer.isHidden = true
         card.layer.insertSublayer(elapsedLayer, at: 0)
+
+        artworkImageView.contentMode = .scaleAspectFill
+        artworkImageView.clipsToBounds = true
+        artworkImageView.backgroundColor = UIColor(white: 0, alpha: 0.12)
+        artworkImageView.image = UIImage(systemName: "tv")?.withTintColor(.white.withAlphaComponent(0.35), renderingMode: .alwaysOriginal)
+        artworkImageView.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(artworkImageView)
 
         titleLabel.font = .systemFont(ofSize: 23, weight: .semibold)
         titleLabel.textColor = UIColor(EPGTheme.textPrimary)
@@ -1455,12 +1619,17 @@ final class ProgramCellView: UICollectionViewCell, KeepsUpAtTop {
         stack.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(stack)
 
-        stackLeading = stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: baseLeading)
+        stackLeading = stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: textGap)
+        artworkWidth = artworkImageView.widthAnchor.constraint(equalToConstant: 0)
         NSLayoutConstraint.activate([
             card.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             card.topAnchor.constraint(equalTo: contentView.topAnchor),
             card.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             card.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            artworkImageView.leadingAnchor.constraint(equalTo: card.leadingAnchor),
+            artworkImageView.topAnchor.constraint(equalTo: card.topAnchor),
+            artworkImageView.bottomAnchor.constraint(equalTo: card.bottomAnchor),
+            artworkWidth,
             stackLeading,
             stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -10),
             stack.centerYAnchor.constraint(equalTo: card.centerYAnchor),
@@ -1474,7 +1643,11 @@ final class ProgramCellView: UICollectionViewCell, KeepsUpAtTop {
     override func apply(_ layoutAttributes: UICollectionViewLayoutAttributes) {
         super.apply(layoutAttributes)
         let attrs = layoutAttributes as? EPGCellAttributes
-        stackLeading.constant = baseLeading + (attrs?.titleInset ?? 0)
+        // The cell columns stay fixed while the timeline moves. The moving
+        // clip belongs to the collection layout; changing the text inset here
+        // made the artwork/text boundary visibly jump during automatic scrolling.
+        titleInset = 0
+        updateContentLayout()
         leftClip = attrs?.leftClip ?? 0
         topClip = attrs?.topClip ?? 0
         pastWidth = attrs?.pastWidth ?? 0
@@ -1494,23 +1667,61 @@ final class ProgramCellView: UICollectionViewCell, KeepsUpAtTop {
     private var leftClip: CGFloat = 0
     private var topClip: CGFloat = 0
     private let clipMask = CAShapeLayer()
+    private var lastClipRect: CGRect?
     private func applyClip() {
         guard transparent, bounds.width > 0, bounds.height > 0,
               (leftClip > 0 || topClip > 0) else {
-            contentView.layer.mask = nil
+            if lastClipRect != nil {
+                contentView.layer.mask = nil
+                lastClipRect = nil
+            }
             return
         }
         let rect = CGRect(x: leftClip, y: topClip,
                           width: max(bounds.width - leftClip, 0),
                           height: max(bounds.height - topClip, 0))
+        guard lastClipRect != rect else { return }
         // All four corners: the unclipped ones coincide with the card's own,
         // and this initializer (unlike `byRoundingCorners:`) draws the same
         // continuous curve as `cornerCurve = .continuous`.
         clipMask.path = UIBezierPath(roundedRect: rect, cornerRadius: EPGTheme.columnCorner).cgPath
         contentView.layer.mask = clipMask
+        lastClipRect = rect
     }
 
-    func configure(_ program: UnifiedProgram, isRecording: Bool = false) {
+    static func artworkURL(for program: UnifiedProgram) -> URL? {
+        // Keep the source URL deterministic. Image classification can complete
+        // asynchronously while the guide is loading; asking it here would let
+        // the same programme switch URL between preload and cell configuration.
+        program.landscapeURL ?? program.iconURL ?? program.posterURL
+    }
+
+    func configure(_ program: UnifiedProgram, isRecording: Bool = false, artwork: UIImage? = nil) {
+        let nextArtworkURL = Self.artworkURL(for: program)
+        if currentProgramID == program.id,
+           currentRecording == isRecording,
+           currentArtworkURL == nextArtworkURL {
+            return
+        }
+        currentProgramID = program.id
+        currentRecording = isRecording
+
+        if currentArtworkURL != nextArtworkURL {
+            currentArtworkURL = nextArtworkURL
+            if let artwork {
+                if let url = currentArtworkURL {
+                    Self.artworkCache.setObject(artwork, forKey: url as NSURL)
+                }
+                artworkImageView.image = artwork
+            } else if let url = currentArtworkURL,
+                      let cached = Self.artworkCache.object(forKey: url as NSURL) {
+                Self.artworkCache.setObject(cached, forKey: url as NSURL)
+                artworkImageView.image = cached
+            } else {
+                artworkImageView.image = placeholderArtwork
+            }
+        }
+
         titleLabel.text = program.displayTitle
         subtitleLabel.text = program.guideDetail
         subtitleLabel.isHidden = program.guideDetail == nil
@@ -1523,6 +1734,9 @@ final class ProgramCellView: UICollectionViewCell, KeepsUpAtTop {
 
     /// A red dot in the top-right corner while the programme is set to record.
     private let recordingDot = UIView()
+    private var currentArtworkURL: URL?
+    private var currentProgramID: String?
+    private var currentRecording = false
 
     func setRecording(_ recording: Bool) {
         if recordingDot.superview == nil {
@@ -1543,9 +1757,39 @@ final class ProgramCellView: UICollectionViewCell, KeepsUpAtTop {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        stack.isHidden = bounds.width < minTextWidth
+        updateContentLayout()
         applyClip()
         applyElapsed()
+    }
+
+    private func updateContentLayout() {
+        // UICollectionView calls apply(_:) before assigning the final frame
+        // during a layout pass. Do not collapse the artwork column to zero
+        // while bounds are temporarily empty; layoutSubviews will apply the
+        // correct width as soon as the cell has its real size. Collapsing and
+        // restoring this constraint was visible as a thumbnail flicker.
+        guard bounds.width > 0 else { return }
+
+        // Always reserve the artwork column first. Text is shown only when the
+        // remaining column can hold it, so the two regions can never overlap.
+        let availableForArtwork = max(bounds.width - textGap - textTrailingPadding, 0)
+        let width = min(maxArtworkWidth, availableForArtwork)
+        artworkWidth.constant = width
+        stackLeading.constant = width + textGap
+        stack.isHidden = bounds.width - width - textGap < minTextWidth
+        artworkImageView.isHidden = false
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        currentArtworkURL = nil
+        currentProgramID = nil
+        currentRecording = false
+        artworkImageView.image = placeholderArtwork
+    }
+
+    private var placeholderArtwork: UIImage? {
+        UIImage(systemName: "tv")?.withTintColor(.white.withAlphaComponent(0.35), renderingMode: .alwaysOriginal)
     }
 
     override var canBecomeFocused: Bool { true }

@@ -25,12 +25,22 @@ struct GuideLayoutView: View {
     /// Selected category tab. nil = "All Channels"; otherwise an M3U group title.
     @State private var selectedGroup: String?
 
+    /// The guide is a single presentation snapshot. LiveTVDataStore continues
+    /// filling its long-range cache in the background, but publishing those
+    /// additions directly into this view causes the UIKit grid and its image
+    /// cells to be rebuilt while they are on screen.
+    @State private var guideChannelsSnapshot: [UnifiedChannel]?
+    @State private var guideEPGSnapshot: [String: [UnifiedProgram]]?
+    @State private var guideTotalMinutes: Int?
+    @State private var guideSnapshotReady = false
+
     /// Channels for the current source, before category filtering.
     private var sourceChannels: [UnifiedChannel] {
+        let allChannels = guideChannelsSnapshot ?? dataStore.channels
         if let sourceId = sourceIdFilter {
-            return dataStore.channels.filter { $0.sourceId == sourceId }
+            return allChannels.filter { $0.sourceId == sourceId }
         }
-        return dataStore.channels
+        return allChannels
     }
 
     /// Tab title for favourites: Rivulet's, from any source, then the source's
@@ -107,7 +117,7 @@ struct GuideLayoutView: View {
     /// their rows still render focusable cells — without them the row has
     /// nothing to land on and the channel can't be selected at all.
     private var programsByChannel: [String: [UnifiedProgram]] {
-        var epg = dataStore.epg
+        var epg = guideEPGSnapshot ?? dataStore.epg
         let spanMinutes = totalMinutes
         for channel in channels where (epg[channel.id]?.isEmpty ?? true) {
             epg[channel.id] = Self.placeholderPrograms(
@@ -142,6 +152,7 @@ struct GuideLayoutView: View {
     /// grows as the store fills in more programming. Floors at the initial load
     /// so the first paint has room, and never runs past the placeholder ceiling.
     private var totalMinutes: Int {
+        if let guideTotalMinutes { return guideTotalMinutes }
         let floor = EPGTheme.initialGuideHours * 60
         let ceiling = EPGTheme.timelineSpanHours * 60
         guard let through = dataStore.epgLoadedThrough else { return floor }
@@ -186,7 +197,7 @@ struct GuideLayoutView: View {
                 // through. When artwork exists, `ambiance` paints it on top.
                 ambiance
 
-                if channels.isEmpty {
+                if channels.isEmpty || !guideSnapshotReady {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
@@ -216,6 +227,13 @@ struct GuideLayoutView: View {
             if dataStore.epg.isEmpty {
                 await dataStore.loadEPG(startDate: timelineStart, hours: EPGTheme.initialGuideHours)
             }
+            // Commit the first complete EPG result once. Subsequent background
+            // fills update the store for other consumers, but must not mutate
+            // the already-visible guide or recycle its artwork cells.
+            guideChannelsSnapshot = dataStore.channels
+            guideEPGSnapshot = dataStore.epg
+            guideTotalMinutes = totalMinutes
+            guideSnapshotReady = true
             seedFocus()
             await dataStore.refreshScheduledRecordings()
         }

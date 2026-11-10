@@ -248,14 +248,17 @@ final class HeroOverlayView: UIView {
 
     private var currentItem: PlexMetadata? {
         guard !items.isEmpty else { return nil }
-        let clamped = max(0, min(currentIndex, items.count - 1))
-        return items[clamped]
+        return items[wrappedIndex(currentIndex, count: items.count)]
     }
 
     private var displayedItem: PlexMetadata? {
         guard !items.isEmpty else { return nil }
-        let clamped = max(0, min(displayedIndex, items.count - 1))
-        return items[clamped]
+        return items[wrappedIndex(displayedIndex, count: items.count)]
+    }
+
+    private func wrappedIndex(_ index: Int, count: Int) -> Int {
+        guard count > 0 else { return 0 }
+        return ((index % count) + count) % count
     }
 
     private func renderSlide(animated: Bool, manageAlpha: Bool = true, onReady: (() -> Void)? = nil) {
@@ -273,15 +276,17 @@ final class HeroOverlayView: UIView {
         // Dots track the PRESS index (currentIndex), not the lagged metadata
         // (displayedIndex), so they advance with the backdrop image on the
         // click rather than 400ms later when the metadata swaps in.
-        pagingDots.update(count: items.count, activeIndex: currentIndex)
+        pagingDots.update(count: items.count, activeIndex: wrappedIndex(currentIndex, count: items.count))
     }
 
     // MARK: - Paging (button -> currentIndex -> backdrop -> delayed slide swap)
 
     private func advance() {
         guard items.count > 1 else { return }
-        let next = (currentIndex + 1) % items.count
-        setCurrentIndex(next)
+        // Keep the visual motion forward at the cycle boundary.  Do not infer
+        // direction from the numeric index: 5 -> 0 is still one forward page,
+        // not a request to walk back through pages 4...1.
+        setCurrentIndex(currentIndex + 1, direction: .forward)
     }
 
     private func setCurrentIndex(_ newIndex: Int, direction: HeroPageDirection = .forward) {
@@ -291,7 +296,9 @@ final class HeroOverlayView: UIView {
         // backdrop off the SAME array the slide uses. The controller's heroItems
         // can be reordered (TMDB hero upgrade) after this view was configured, so
         // an index alone would point at a different item -> metadata/image drift.
-        if let item = currentItem { onIndexChanged?(newIndex, item, direction) }
+        if let item = currentItem {
+            onIndexChanged?(wrappedIndex(newIndex, count: items.count), item, direction)
+        }
         updateButtonStateForCurrentItem()
         // Advance the dots NOW, on the press (with the backdrop image), not in
         // the delayed metadata swap below.
@@ -319,11 +326,13 @@ final class HeroOverlayView: UIView {
             // final logo/text shows from the first frame -- no fallback-text
             // flash that then jumps to the logo mid-fade.
             self.slideView.alpha = 0
+            self.slideView.transform = CGAffineTransform(translationX: self.bounds.width, y: 0)
             self.renderSlide(animated: false, manageAlpha: false) { [weak self] in
                 guard let self, self.configurationGeneration == generation,
                       self.currentIndex == newIndex else { return }
                 UIView.animate(withDuration: HeroPageMotion.metadataFade, delay: 0, options: [.curveEaseOut]) {
                     self.slideView.alpha = 1
+                    self.slideView.transform = .identity
                 }
             }
         }
@@ -693,12 +702,17 @@ final class MediaItemHeroOverlayView: UIView {
 
     private var displayedItem: MediaItem? {
         guard !items.isEmpty else { return nil }
-        return items[max(0, min(displayedIndex, items.count - 1))]
+        return items[wrappedIndex(displayedIndex, count: items.count)]
     }
 
     private var currentItem: MediaItem? {
         guard !items.isEmpty else { return nil }
-        return items[max(0, min(currentIndex, items.count - 1))]
+        return items[wrappedIndex(currentIndex, count: items.count)]
+    }
+
+    private func wrappedIndex(_ index: Int, count: Int) -> Int {
+        guard count > 0 else { return 0 }
+        return ((index % count) + count) % count
     }
 
     private func renderSlide(onReady: (() -> Void)? = nil) {
@@ -714,7 +728,7 @@ final class MediaItemHeroOverlayView: UIView {
         pagingDotsBackground.isHidden = items.count <= 1
         // Track the PRESS index (currentIndex), not the lagged metadata
         // (displayedIndex) — dots advance with the backdrop image on the click.
-        pagingDots.update(count: items.count, activeIndex: currentIndex)
+        pagingDots.update(count: items.count, activeIndex: wrappedIndex(currentIndex, count: items.count))
     }
 
     // MARK: - Paging
@@ -722,7 +736,9 @@ final class MediaItemHeroOverlayView: UIView {
     private func setCurrentIndex(_ newIndex: Int, direction: HeroPageDirection = .forward) {
         guard newIndex != currentIndex else { return }
         currentIndex = newIndex
-        if let item = currentItem { onIndexChanged?(newIndex, item, direction) }
+        if let item = currentItem {
+            onIndexChanged?(wrappedIndex(newIndex, count: items.count), item, direction)
+        }
         buttonRow.canAdvance = items.count > 1
         buttonRow.canRetreat = currentIndex > 0
         // Advance the dots NOW, on the press, with the backdrop image.
@@ -745,11 +761,13 @@ final class MediaItemHeroOverlayView: UIView {
             // resolved (loaded or absent) — same beat as the PlexMetadata
             // hero, so metadata never pops in ahead of its logo.
             self.slideView.alpha = 0
+            self.slideView.transform = CGAffineTransform(translationX: self.bounds.width, y: 0)
             self.renderSlide { [weak self] in
                 guard let self, self.configurationGeneration == generation,
                       self.currentIndex == newIndex else { return }
                 UIView.animate(withDuration: HeroPageMotion.metadataFade, delay: 0, options: [.curveEaseOut]) {
                     self.slideView.alpha = 1
+                    self.slideView.transform = .identity
                 }
             }
         }
@@ -759,7 +777,9 @@ final class MediaItemHeroOverlayView: UIView {
 
     func advance() {
         guard items.count > 1 else { return }
-        setCurrentIndex((currentIndex + 1) % items.count)
+        // The last-to-first transition remains a single forward page.  The
+        // logical index wraps, but the animation direction never does.
+        setCurrentIndex(currentIndex + 1, direction: .forward)
     }
 
     private func prefetchNextBackdrop() {
