@@ -54,9 +54,9 @@ struct IOSRootView: View {
                 }
                 // Not by `id`: that is the server's own section number, so two servers collide and UIKit's sidebar throws.
                 ForEach(showsSidebarLibraries ? videoLibraries : [], id: \.self) { library in
-                    Tab(browse.labels.title(library.title, providerID: library.providerID), systemImage: library.icon,
+                    Tab(browse.labels.title(library.title, providerID: library.providerID), systemImage: library.iosIcon,
                         value: libraryTab(library)) {
-                        sidebarStack(libraryTab(library)) { IOSPlexLibraryView(library: library, showsAccount: true) }
+                        sidebarStack(libraryTab(library)) { IOSLibraryPage(library: library, showsAccount: true) }
                     }
                     .defaultVisibility(.hidden, for: .tabBar)
                 }
@@ -136,15 +136,25 @@ struct IOSRootView: View {
         }
         .onChange(of: browse.libraries) { _, libraries in
             if !libraries.isEmpty, !browse.isLoadingOtherServers { dropOrphanedLibraryTab() }
-            if case .library(let library) = librarySelection, !libraries.contains(library) {
-                librarySelection = nil
-                libraryPath = NavigationPath()
-            }
+            dropMissingLibrarySelection()
+        }
+        .onChange(of: browse.photoLibraries) { dropMissingLibrarySelection() }
+        .onChange(of: browse.hiddenSidebarLibraries) {
+            dropOrphanedLibraryTab()
+            dropMissingLibrarySelection()
         }
         .onChange(of: browse.isLoadingOtherServers) { _, loading in
             if !loading, !browse.libraries.isEmpty { dropOrphanedLibraryTab() }
         }
         .onChange(of: playlistServers) { if !browse.isLoadingOtherServers { dropOrphanedLibraryTab() } }
+    }
+
+    /// A library gone from the server or hidden in Settings leaves the selection.
+    private func dropMissingLibrarySelection() {
+        if case .library(let library) = librarySelection, !browse.shownLibraries.contains(library) {
+            librarySelection = nil
+            libraryPath = NavigationPath()
+        }
     }
 
     /// A sidebar library tab vanishes on a server without that library.
@@ -217,9 +227,9 @@ struct IOSRootView: View {
         return browse.providerOrder.filter { browse.playlists[$0] != nil }
     }
 
-    /// Movie and TV libraries only: iOS has no music player. Each server's together, the selected first.
+    /// Movie, TV and photo libraries: iOS has no music player. Each server's together, the selected first.
     private var videoLibraries: [MediaLibrary] {
-        browse.libraries.sidebarOrder(servers: browse.providerOrder)
+        browse.shownLibraries.sidebarOrder(servers: browse.providerOrder)
     }
 
     private func libraryTab(_ library: MediaLibrary) -> String { "library:\(library.providerID)|\(library.id)" }
@@ -246,7 +256,7 @@ struct IOSRootView: View {
             libraryColumn = .detail
             return
         }
-        guard let item = try? await SearchResults.search(title, providers: browse.searchProviders).first(where: { $0.title == title }) else { return }
+        guard let item = try? await SearchResults.search(title, providers: browse.searchProviders).titles.first(where: { $0.title == title }) else { return }
         selectedTab = "library"
         libraryColumn = .detail
         // iPad's split view picks a library on appear and clears the path when it does, so pick first.

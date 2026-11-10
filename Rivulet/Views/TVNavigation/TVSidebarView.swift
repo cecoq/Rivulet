@@ -8,6 +8,7 @@
 //  Main tvOS navigation state, hosting the UIKit shell (RootShellViewController)
 //
 
+import Combine
 import SwiftUI
 import os.log
 import Sentry
@@ -82,11 +83,6 @@ struct TVSidebarView: View {
         ShellSidebarModel.profileName(plexProfile: profileManager.selectedUser?.displayName,
                                              plexUser: authManager.username,
                                              otherServerUsers: AccountName.otherServerUsers)
-    }
-
-    private var isMusicLibrarySelected: Bool {
-        guard case .library(let key) = selectedTab else { return false }
-        return dataStore.libraries.first(where: { $0.key == key })?.isMusicLibrary ?? false
     }
 
     /// The collapsed pill sits top-left, over the guide's info bar, which puts
@@ -168,7 +164,7 @@ struct TVSidebarView: View {
         RootShellHost(
             selection: tabSelection,
             interactionBlocked: nestedNavState.isNested || nestedNavState.isSettingsSubPage,
-            pillSuppressed: isMusicLibrarySelected || isLiveTVSelected || isSearchSelected,
+            pillSuppressed: isLiveTVSelected || isSearchSelected,
             collapseRequest: sidebarCollapseRequest,
             profilePanelOpen: showProfileSwitcher,
             profileRowRequest: sidebarProfileRowRequest,
@@ -327,19 +323,21 @@ struct TVSidebarView: View {
             // Start background preloading of Live TV data (low priority)
             liveTVDataStore.startBackgroundPreload()
         }
-        .onChange(of: deepLinkHandler.pendingPlayback) { _, playback in
-            guard let playback else { return }
+        // onReceive, not onChange: with a player presented over the shell, onChange never
+        // runs, so a link opened over a player was only seen after the player closed.
+        .onReceive(deepLinkHandler.$pendingPlayback.compactMap { $0 }.receive(on: DispatchQueue.main)) { playback in
+            guard deepLinkHandler.pendingPlayback != nil else { return }  // already delivered
             deepLinkHandler.pendingPlayback = nil
             playForDeepLink(playback.metadata, startOffset: playback.startOffset)
         }
         // Handle detail deep links from Siri search results
-        .onChange(of: deepLinkHandler.pendingDetail) { _, metadata in
-            guard let metadata else { return }
+        .onReceive(deepLinkHandler.$pendingDetail.compactMap { $0 }.receive(on: DispatchQueue.main)) { metadata in
+            guard deepLinkHandler.pendingDetail != nil else { return }  // already delivered
             deepLinkHandler.pendingDetail = nil
             presentDetailForDeepLink(metadata)
         }
-        .onChange(of: deepLinkHandler.pendingProviderLink) { _, link in
-            guard let link else { return }
+        .onReceive(deepLinkHandler.$pendingProviderLink.compactMap { $0 }.receive(on: DispatchQueue.main)) { link in
+            guard deepLinkHandler.pendingProviderLink != nil else { return }  // already delivered
             deepLinkHandler.pendingProviderLink = nil
             presentReplacingStack { top in
                 switch link.action {
@@ -667,10 +665,7 @@ struct TVSidebarView: View {
                     }
                 }
                 if library.kind == .photos {
-                    return PhotoLibraryViewController(title: library.title) {
-                        (MediaProviderRegistry.shared.provider(for: library.providerID) as? any PhotoProvider)
-                            .map { ($0, library) }
-                    }
+                    return PhotoLibraryViewController(title: library.title, source: PhotoListing.source(for: library))
                 }
                 if library.kind == .music {
                     return MusicLibraryViewController(libraryKey: library.id, title: library.title,
@@ -744,6 +739,14 @@ struct TVSidebarView: View {
     /// DEBUG: jump straight to a library named by the RIVULET_OPEN_LIBRARY env
     /// var once libraries have loaded, so sim iteration skips the sidebar nav.
     private func applyDebugLaunchTab() {
+        #if DEBUG
+        // RIVULET_SEARCH=<query>: the Search tab with that query typed.
+        if !didApplyDebugLaunch, ProcessInfo.processInfo.environment["RIVULET_SEARCH"] != nil {
+            didApplyDebugLaunch = true
+            selectedTab = .search
+            return
+        }
+        #endif
         guard !didApplyDebugLaunch,
               let name = ProcessInfo.processInfo.environment["RIVULET_OPEN_LIBRARY"] else { return }
         #if DEBUG

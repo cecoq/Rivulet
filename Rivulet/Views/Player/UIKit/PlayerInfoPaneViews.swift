@@ -54,7 +54,7 @@ final class PlayerInfoCardView: UIView {
         var showsFromBeginning = true
     }
 
-    private enum Metrics {
+    enum Metrics {
         static let height: CGFloat = 250
         static let radius: CGFloat = 48
         static let poster = CGRect(x: 23, y: 23, width: 136, height: 204)
@@ -666,6 +666,20 @@ enum DolbyVisionPlayback: String, Equatable {
     }
 }
 
+/// A Profile 7 source's enhancement layer, for the Details tab.
+enum DolbyVisionLayerType: String, Equatable {
+    case full = "Full (FEL)"
+    case minimal = "Minimal (MEL)"
+
+    /// Display text; rawValue stays the stable English.
+    var title: String {
+        switch self {
+        case .full: String(localized: "Full (FEL)")
+        case .minimal: String(localized: "Minimal (MEL)")
+        }
+    }
+}
+
 struct StreamingModeInfo {
     enum Mode: String {
         case directPlay = "Direct Play"
@@ -901,6 +915,7 @@ final class PlayerDetailsPaneView: UIView {
 
     static func mediaSections(metadata: PlexMetadata, modes: StreamingModeInfo,
                               dolbyVision: DolbyVisionPlayback? = nil,
+                              enhancementLayer: DolbyVisionLayerType? = nil,
                               enhanceDialogue: String? = nil,
                               upscale: String? = nil) -> [Section] {
         let media = metadata.Media?.first
@@ -916,6 +931,7 @@ final class PlayerDetailsPaneView: UIView {
                 var profile = String(localized: "Profile \(stream.DOVIProfile ?? 0)")
                 if let compat = stream.DOVIBLCompatID { profile += " (CompatID \(compat))" }
                 video.append(Row(label: "Dolby Vision", value: profile))
+                if let enhancementLayer { video.append(Row(label: String(localized: "Enhancement Layer"), value: enhancementLayer.title)) }
                 if let dolbyVision { video.append(Row(label: String(localized: "Playing As"), value: dolbyVision.title)) }
             } else if stream.isHDR {
                 video.append(Row(label: "HDR", value: "HDR10"))

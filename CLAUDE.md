@@ -75,7 +75,8 @@ RivuletiOS/             # iOS/iPadOS app (SwiftUI). Shell/ (tabs, Account sheet,
 │                       #   over the shared LiveTVDataStore), Player/ (iOS
 │                       #   AetherPlayer, IOSPlaybackController: PiP, Now Playing),
 │                       #   Downloads/ (background transfer, download center, list;
-│                       #   records + offline progress live in RivuletCore/Downloads).
+│                       #   records + offline progress live in RivuletCore/Downloads),
+│                       #   Photos/ (photo library grid and viewer over PhotoListingModel).
 RivuletMac/             # Native macOS app (SwiftUI + AppKit). See "Mac app" and
 │                       #   RivuletMac/README-MAC.md (navigation contract, file map).
 Rivulet/                # The tvOS app — everything below.
@@ -149,10 +150,9 @@ app supports**: Plex, Jellyfin and Emby on both apps (IPTV where it applies). A 
 message, and a standing exception is listed below. A gap nobody wrote down is a bug.
 
 Standing exceptions:
-- Photos are tvOS only.
 - Downloads are iOS only.
 - The watchlist is Plex only: Jellyfin and Emby have none (`supportsWatchlist`).
-- The detail page offers no Delete on either app: it would be left showing what it deleted.
+- Delete is offered on an episode in a show or season page's episode list, which animates it out. A detail page never deletes its own title (an episode's page included): it would be left showing what it deleted.
 
 ## Platform Boundary (tvOS / iOS)
 
@@ -253,7 +253,7 @@ retroactive conformance.
 ### Mac app (native, `RivuletMac/`)
 
 Scheme `Rivulet Mac`, macOS 26+, SwiftUI + AppKit, sandboxed. Same parity rule
-as the other apps (no Downloads, no Photos). It reads the same `RivuletCore/Client`
+as the other apps (no Downloads). It reads the same `RivuletCore/Client`
 stores as iOS; only `RivuletMac/Player/AetherPlayer.swift` imports AetherEngine
 (a third adapter, so a mapping fix lands in three files until it moves to core).
 Captions have no libass layer: LibassBuild ships no macOS slice.
@@ -871,13 +871,17 @@ A photo library (Plex section type `photo`, Jellyfin `photos`, or `homevideos` h
 one photo) is a library like any other: listed in the sidebar and in Settings > Sidebar Libraries, opened by
 `PhotoLibraryViewController` (`Views/Photos/UIKit/`), a stack of `PhotoGridViewController` grids
 with a focusless full-screen `PhotoViewerViewController` (paging and slideshow, both remote
-transports through `DirectionalInputBinding`). tvOS only.
+transports through `DirectionalInputBinding`). Photos are on tvOS, iOS and Mac; the names here are
+tvOS's, and the other two are SwiftUI in `RivuletiOS/Photos/` and `RivuletMac/Photos/` over the shared
+`RivuletCore/Photos/` listing.
 
 - **Photos are `PhotoItem`, never `MediaItem`.** That is what keeps them out of Home rows,
   Search, the detail page, Continue Watching and Top Shelf. Do not map one into a `MediaItem`.
-- **One seam: `PhotoProvider.photoPage(in:folder:page:)`**, adopted by extension on the Plex and
-  Jellyfin providers. Every server assumption lives in `PlexPhotoProvider.swift` and
-  `JellyfinPhotoProvider.swift`.
+- **One seam: `PhotoProvider.photoPage(in:folder:query:page:)`**, adopted by extension on the Plex,
+  Jellyfin and Emby providers. Every server assumption lives in `PlexPhotoProvider.swift`,
+  `JellyfinPhotoProvider.swift` and `EmbyPhotoProvider.swift`.
+- **On iOS and Mac, `BrowseStore.libraries` never holds photo libraries (`photoLibraries` does),**
+  which is what keeps photos off Home.
 - **`visibleSidebarLibraries` lists photo libraries; `visibleMediaLibraries` does not.** The
   second feeds Home rows, hub fetches and prefetch, so widening it puts photo sections on Home.
 - **Never request the original file.** Thumbnails ask the photo transcoder for a 520 px cover,
@@ -1005,11 +1009,14 @@ let next = episodes.first(where: { $0.index == currentEpisodeIndex + 1 })
 
 Release notes live ONLY in the `changelogs` array in
 `Rivulet/Views/Components/WhatsNewView.swift` (root `CHANGELOG.md` is a stub).
-iOS has its own, `IOSChangelog.entries` in `RivuletiOS/Settings/IOSWhatsNew.swift`,
-keyed the same way from the `ios-vX.Y.Z-<build>` tag (sheet at launch, Account → Changelog).
-Mac has `MacChangelog.entries` in `RivuletMac/Settings/MacWhatsNew.swift`, keyed from the
-`mac-vX.Y.Z-<build>` tag (sheet at launch, Help → What's New, Settings → General). Each
-platform keeps its own `MARKETING_VERSION` and build numbers; Mac started at `1.0.0 (1)`.
+iOS has its own, `IOSChangelog.entries` in `RivuletiOS/Settings/IOSWhatsNew.swift`
+(sheet at launch, Account → Changelog), and Mac `MacChangelog.entries` in
+`RivuletMac/Settings/MacWhatsNew.swift` (sheet at launch, Help → What's New, Settings → General).
+**All three platforms ship together from one `vX.Y.Z-<build>` tag, with one version and
+build number** (since `1.3.0 (125)`; before that iOS used `ios-v*` tags and Mac `mac-v*`).
+A release gets an entry under the same key in all three lists, each with only the lines
+that apply to that app. `MARKETING_VERSION` is set by hand on every app and extension
+target (10 places, not the test target) and must match across them.
 Entries are keyed by build-qualified version (`"1.0.3 (65)"`), newest first.
 Settings → About → Changelog renders the full history; the fresh-launch
 "What's New" shows only the current build's entry.
@@ -1179,7 +1186,7 @@ xcodebuild test -scheme Rivulet -destination 'platform=tvOS Simulator,name=Apple
 
 Most tests live in `RivuletTests/Unit/` (mirrors `Rivulet/` roughly by feature — Parsers, Playback, Player, Preferences, Services, Siri, etc.), with shared fixtures/mocks in `RivuletTests/Fixtures/`, `RivuletTests/Helpers/`, `RivuletTests/Mocks/`. A few sit at the `RivuletTests/` root (`PlexDeviceDecodingTests.swift`).
 
-**Building requires full Xcode** (not just Command Line Tools) since it's tvOS. There is still no CI test run — run tests locally. CI is split across two systems: `codemagic.yaml` archives and publishes to TestFlight on tag push (`v*` → tvOS, `ios-v*` → iOS, `mac-v*` → macOS, all `<prefix>X.Y.Z-<build>`), and `.github/workflows/` holds five workflows — the SwiftLint gate, two Claude review/mention bots, and two build checks that exist to guard the platform boundary: `build-ios.yml` compiles the `Rivulet iOS` scheme on PRs/pushes touching `RivuletCore/**`, `RivuletiOS/**`, or the project file (otherwise nothing compiles iOS between release tags), and `build-tvos-core.yml` compiles the tvOS scheme when shared code changes from the iOS side. Both are build-only; signing and archives stay on Codemagic.
+**Building requires full Xcode** (not just Command Line Tools) since it's tvOS. There is still no CI test run — run tests locally. CI is split across two systems: `codemagic.yaml` archives and publishes to TestFlight on tag push (one `vX.Y.Z-<build>` tag starts the tvOS, iOS and macOS workflows; tvOS and iOS IPAs attach to one GitHub release as `Rivulet.ipa` and `Rivulet-iOS.ipa`), and `.github/workflows/` holds five workflows — the SwiftLint gate, two Claude review/mention bots, and two build checks that exist to guard the platform boundary: `build-ios.yml` compiles the `Rivulet iOS` scheme on PRs/pushes touching `RivuletCore/**`, `RivuletiOS/**`, or the project file (otherwise nothing compiles iOS between release tags), and `build-tvos-core.yml` compiles the tvOS scheme when shared code changes from the iOS side. Both are build-only; signing and archives stay on Codemagic.
 
 **One Xcode everywhere: `codemagic.yaml`'s `xcode:` pin.** Both build checks read it, and it must equal the Xcode you build with locally (27.2 today). When you upgrade local Xcode, bump the pin in the same commit (and the checks' `runs-on` image on a major). The type checker is the reason: a newer compiler accepts expressions an older one gives up on ("unable to type-check this expression in reasonable time"), so a mismatch passes every local build and breaks CI after the push. It happened twice before the pin (`e602163`, the favorites sort in `LiveTVDataStore`).
 
@@ -1318,6 +1325,13 @@ The Plex Discover API uses three different hosts:
 | Mutations | Resolve external GUID → discover `ratingKey` via matches endpoint first, then PUT actions |
 
 ## Plex server API gotchas
+
+**Search through `/hubs/search`, never the legacy `/search`.** Measured on PMS 1.43.5:
+`/search` caps each type at 15, so "christmas" returned 15 home videos and no film from
+the Movies library. `/hubs/search` caps per hub (`limit`), scores each result, and adds
+actor, director, genre and collection hubs (`PlexHubSearch`). An item with `reason=actor`
+or `director` matched a person, not its title, and episodes of a matching show come back
+too, so the title rows filter both.
 
 **Hub items are not full metadata.** `/hubs/continueWatching` sends the `Guid`
 array only with `includeGuids=1` (which `continueWatchingURL` sends), and only three `Role` entries. Anything keyed on external

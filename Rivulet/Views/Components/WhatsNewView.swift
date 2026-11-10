@@ -155,6 +155,18 @@ struct WhatsNewView: View {
     // MARK: - Changelog Data
 
     static let changelogs: [(version: String, features: [String])] = [
+        ("1.3.0 (125)", [
+            "Improved search to find more matches, genres, and people",
+            "Photos: favorites, slideshows, photo info, a map and a memories row",
+            "Direct Play buffers as far ahead as storage allows",
+            "Subtitle search should work for Jellyfin and Emby (please test)",
+            "Music plays TrueHD, DTS, and other formats",
+            "Plex home profiles now see their own watchlist",
+            "Added delete option in more long press menus",
+            "Live TV guide category pills fade at the edges. @rcork",
+            "Long-press menus scroll when they're taller than the screen",
+            "Music library title no longer covers top of menu",
+        ]),
         ("1.2.0 (124)", [
             "> Thank you to everyone who sent a PR!",
             "On a Dolby Vision TV, Profile 7 FEL keeps most of its enhancement layer",

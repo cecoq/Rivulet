@@ -30,6 +30,8 @@ nonisolated enum HomeFeed {
     /// One server's answer.
     struct ServerRows: Sendable, Equatable {
         var libraries: [MediaLibrary] = []
+        /// Its photo libraries, listed only; no rows are fetched for them.
+        var photoLibraries: [MediaLibrary] = []
         /// Nil when its fetch failed, so the last answer stands.
         var continueWatching: [MediaItem]?
         /// Rows after Continue Watching, by library id. A library missing here failed.
@@ -49,6 +51,7 @@ nonisolated enum HomeFeed {
 
     struct Assembled: Sendable, Equatable {
         var libraries: [MediaLibrary]
+        var photoLibraries: [MediaLibrary] = []
         /// Each server's Continue Watching items, the selected server first, for the merge.
         var continueWatching: [[MediaItem]]
         var shelves: [MediaHub]
@@ -57,19 +60,26 @@ nonisolated enum HomeFeed {
         var failures: [String: String] = [:]
     }
 
-    static func assemble(selected: ServerRows?, others: [ServerRows]) -> Assembled {
+    /// `hiddenLibraries` (`SidebarLibraryVisibility` keys) leave their rows off Home, as on tvOS.
+    static func assemble(selected: ServerRows?, others: [ServerRows], hiddenLibraries: Set<String> = []) -> Assembled {
         let servers = (selected.map { [$0] } ?? []) + others
         return Assembled(
             libraries: servers.flatMap(\.libraries),
+            photoLibraries: servers.flatMap(\.photoLibraries),
             continueWatching: servers.map { $0.continueWatching ?? [] },
-            shelves: servers.flatMap { server in server.libraries.flatMap { server.rowsByLibrary[$0.id] ?? [] } })
+            shelves: servers.flatMap { server in
+                server.libraries
+                    .filter { !hiddenLibraries.contains(SidebarLibraryVisibility.key(for: $0)) }
+                    .flatMap { server.rowsByLibrary[$0.id] ?? [] }
+            })
     }
 
     /// Fetches one server's Home. Only the library list can fail the call; a failed
     /// Continue Watching or library row is recorded as missing (see `ServerRows`).
     static func fetch(_ provider: any MediaProvider, role: Role) async throws -> ServerRows {
         async let continuing = try? await provider.continueWatching(limit: continueWatchingLimit)
-        let libraries = try await provider.libraries().filter { videoKinds.contains($0.kind) }
+        let all = try await provider.libraries()
+        let libraries = all.filter { videoKinds.contains($0.kind) }
         let wanted = role == .selected ? libraries.filter(\.isPinnedToHome) : libraries
         let rows = await withTaskGroup(of: (String, [MediaHub]?).self) { group in
             for library in wanted {
@@ -79,7 +89,8 @@ nonisolated enum HomeFeed {
             for await (id, hubs) in group { found[id] = hubs }
             return found
         }
-        return ServerRows(libraries: libraries, continueWatching: await continuing, rowsByLibrary: rows)
+        return ServerRows(libraries: libraries, photoLibraries: all.filter { $0.kind == .photos },
+                          continueWatching: await continuing, rowsByLibrary: rows)
     }
 
     /// Nil when the library's fetch failed; empty when it answered with no row.
@@ -139,6 +150,8 @@ final class HomeFeedLoader {
     var onChange: ((HomeFeed.Assembled) -> Void)?
     /// Called once the secondary servers have all answered.
     var onSecondaryFinished: (() -> Void)?
+    /// Libraries left off Home; set it, then `publish()`.
+    var hiddenLibraries: Set<String> = []
 
     private var selectedID: String?
     private var secondaryIDs: [String] = []
@@ -225,10 +238,10 @@ final class HomeFeedLoader {
     }
 
     /// Waits for the selected server's first answer, or its failure, then publishes everything known.
-    private func publish() {
+    func publish() {
         if let selectedID, servers[selectedID] == nil, failures[selectedID] == nil { return }
         var home = HomeFeed.assemble(selected: selectedID.flatMap { servers[$0] },
-                                     others: secondaryIDs.compactMap { servers[$0] })
+                                     others: secondaryIDs.compactMap { servers[$0] }, hiddenLibraries: hiddenLibraries)
         home.failures = failures
         onChange?(home)
     }

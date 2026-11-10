@@ -1,6 +1,25 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Map" : {},
+    "On This Day" : {},
+    "Photos from %@" : {},
+    "Slideshow" : {},
+    "Photos" : {},
+    "Unfavorite" : {},
+    "Videos" : {},
+    "Date Taken" : {},
+    "A to Z" : {},
+    "Z to A" : {},
+    "Newest First" : {},
+    "Oldest First" : {},
+    "Dissolve" : {},
+    "Pan and Zoom" : {},
+    "Slideshow Interval" : {},
+    "Transition" : {},
+    "Play Clips in Slideshow" : {},
+    "Direction" : {},
+    "Sort and Show" : {},
     "" : {
 
     },
@@ -10,11 +29,123 @@
     "At the Credits" : {
 
     },
+    "Downloading Subtitles…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untertitel werden geladen …"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Λήψη υποτίτλων…"
+          }
+        }
+      }
+    },
+    "No Subtitles Found" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Untertitel gefunden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν βρέθηκαν υπότιτλοι"
+          }
+        }
+      }
+    },
     "Nothing" : {
 
     },
+    "Search Failed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suche fehlgeschlagen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αποτυχία αναζήτησης"
+          }
+        }
+      }
+    },
+    "Search for Subtitles" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach Untertiteln suchen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αναζήτηση υποτίτλων"
+          }
+        }
+      }
+    },
+    "Search Results" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suchergebnisse"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αποτελέσματα αναζήτησης"
+          }
+        }
+      }
+    },
+    "Searching…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suchen …"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αναζήτηση…"
+          }
+        }
+      }
+    },
     "Skip Button" : {
 
+    },
+    "Subtitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untertitel"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Υπότιτλος"
+          }
+        }
+      }
     },
     "Up Next opens the next episode card when the credits start. Skip Button shows only Skip Credits, then Up Next opens at the end. Nothing waits for the end. Countdown decides autoplay." : {
 
@@ -10554,6 +10685,97 @@
           }
         }
       }
+    },
+    "%@ + %lld more" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ + %2$lld more"
+          }
+        }
+      }
+    },
+    "%@ · Collection" : {
+
+    },
+    "%@ · Genre" : {
+
+    },
+    "%lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld"
+          }
+        }
+      }
+    },
+    "Actor" : {
+
+    },
+    "Couldn't Load Photos" : {
+
+    },
+    "Couldn’t Turn Off" : {
+
+    },
+    "Find movies, TV shows, episodes, people, collections, and genres." : {
+
+    },
+    "Movies, Shows, People, and More" : {
+
+    },
+    "No Photos" : {
+
+    },
+    "No other server is reachable right now, so %@ stays on." : {
+
+    },
+    "Only Server in Use" : {
+
+    },
+    "Pause Slideshow" : {
+
+    },
+    "People" : {
+
+    },
+    "Ratings" : {
+
+    },
+    "S%lld, E%lld · %@:" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "S%1$lld, E%2$lld · %3$@:"
+          }
+        }
+      }
+    },
+    "S%lld, E%lld:" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "S%1$lld, E%2$lld:"
+          }
+        }
+      }
+    },
+    "Start Slideshow" : {
+
+    },
+    "Subtitle %@" : {
+
+    },
+    "The server did not answer." : {
+
+    },
+    "Turn on another server first, or sign out of Plex." : {
+
     }
   },
   "version" : "1.0"
