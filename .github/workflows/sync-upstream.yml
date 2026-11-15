@@ -1,0 +1,71 @@
+name: Sync Rivulet Upstream
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "cecoq"
+          git config user.email "fabricekamayou@gmail.com"
+
+      - name: Prepare upstream sync branch
+        id: prepare
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git remote add upstream https://github.com/l984-451/Rivulet.git
+          git fetch --no-tags upstream main
+          git fetch --no-tags origin main
+
+          if git merge-base --is-ancestor upstream/main origin/main; then
+            echo "up_to_date=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git switch --create automation/upstream-sync upstream/main
+          git checkout origin/main -- .github/workflows/sync-upstream.yml
+          git add .github/workflows/sync-upstream.yml
+          git commit -m "Keep upstream sync workflow" || true
+          git push --force origin HEAD:automation/upstream-sync
+          echo "up_to_date=false" >> "$GITHUB_OUTPUT"
+
+          number=$(gh pr list --repo "$GITHUB_REPOSITORY" --base main \
+            --head "$GITHUB_REPOSITORY_OWNER:automation/upstream-sync" \
+            --state open --json number --jq '.[0].number // empty')
+          if [ -z "$number" ]; then
+            gh pr create --repo "$GITHUB_REPOSITORY" --base main \
+              --head "$GITHUB_REPOSITORY_OWNER:automation/upstream-sync" \
+              --title "Sync upstream main" \
+              --body "Automated synchronization with l984-451/Rivulet main."
+          fi
+
+      - name: Merge upstream sync pull request
+        if: steps.prepare.outputs.up_to_date == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          number=$(gh pr list --repo "$GITHUB_REPOSITORY" --base main \
+            --head "$GITHUB_REPOSITORY_OWNER:automation/upstream-sync" \
+            --state open --json number --jq '.[0].number')
+          gh pr merge "$number" --repo "$GITHUB_REPOSITORY" --merge --delete-branch
