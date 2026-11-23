@@ -8,6 +8,7 @@ import Sentry
 @main
 struct RivuletiOSApp: App {
     @UIApplicationDelegateAdaptor(IOSAppDelegate.self) private var appDelegate
+    @AppStorage(IOSAppTheme.storageKey) private var appTheme: IOSAppTheme = .system
     @StateObject private var plex: PlexSession
     /// One for the app, so a window opened after launch finds it finished and opens on Home.
     @StateObject private var splashGate: LaunchSplashGate
@@ -86,6 +87,7 @@ struct RivuletiOSApp: App {
                 .environmentObject(plex)
                 .environmentObject(plex.browse)
                 .environmentObject(IOSDownloadCenter.shared)
+                .background(IOSWindowAppearance(style: appTheme.interfaceStyle).allowsHitTesting(false))
         }
     }
 
@@ -117,5 +119,36 @@ struct RivuletiOSApp: App {
         KeychainHelper.delete("iosPlexServerToken")
         defaults.removeObject(forKey: "iosPlexServerURL")
         defaults.removeObject(forKey: "iosPlexServerName")
+    }
+}
+
+/// Set the style on the window so its open sheets inherit it too.
+private struct IOSWindowAppearance: UIViewRepresentable {
+    let style: UIUserInterfaceStyle
+
+    func makeUIView(context: Context) -> AppearanceView {
+        AppearanceView()
+    }
+
+    func updateUIView(_ view: AppearanceView, context: Context) {
+        view.style = style
+        view.applyStyle()
+    }
+
+    final class AppearanceView: UIView {
+        var style: UIUserInterfaceStyle = .unspecified
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            applyStyle()
+        }
+
+        func applyStyle() {
+            // Let SwiftUI finish updating before changing the window's traits.
+            DispatchQueue.main.async { [weak self] in
+                guard let self, let window, window.overrideUserInterfaceStyle != style else { return }
+                window.overrideUserInterfaceStyle = style
+            }
+        }
     }
 }

@@ -12,7 +12,6 @@ struct IOSAccountView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingSignIn = false
     @State private var confirmingSignOut = false
-    @State private var appIcon = AppIcon.current
     /// Bumped when the sheet shows again, so the server rows re-read their stored accounts.
     @State private var serverRevision = 0
 
@@ -60,12 +59,11 @@ struct IOSAccountView: View {
                     } label: {
                         Label("Downloads", systemImage: "arrow.down.circle")
                     }
-                    Picker(selection: Binding(get: { appIcon }, set: { appIcon = $0; $0.apply() })) {
-                        ForEach(AppIcon.allCases) { Text($0.title).tag($0) }
+                    NavigationLink {
+                        IOSAppearanceSettingsView()
                     } label: {
-                        Label("App Icon", systemImage: "app.badge")
+                        Label("Appearance", systemImage: "circle.lefthalf.filled")
                     }
-                    .pickerStyle(.navigationLink)
                     // Sources and server choice are the owner's, not a restricted profile's.
                     if !profiles.isRestrictedProfile {
                         NavigationLink {

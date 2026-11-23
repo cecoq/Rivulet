@@ -1,6 +1,12 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "App Theme" : {
+
+    },
+    "Appearance" : {
+
+    },
     "Aspect Ratio" : {
       "localizations" : {
         "de" : {
@@ -264,6 +270,9 @@
           }
         }
       }
+    },
+    "System" : {
+
     },
     "Thank You" : {
       "localizations" : {
@@ -4356,6 +4365,9 @@
         }
       }
     },
+    "Dark" : {
+
+    },
     "Date Added" : {
       "localizations" : {
         "de" : {
@@ -7200,6 +7212,9 @@
           }
         }
       }
+    },
+    "Light" : {
+
     },
     "Lists each server's video playlists under Library." : {
       "localizations" : {
